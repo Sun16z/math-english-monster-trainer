@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   CURRICULUM_OUTLINE,
   DIFFICULTIES,
@@ -35,6 +35,9 @@ import {
 } from './gameLogic.js';
 
 const STORAGE_KEY = 'math-english-monster-trainer:v1';
+const ACCOUNT_INDEX_KEY = 'math-english-monster-trainer:accounts:v1';
+const ACTIVE_ACCOUNT_KEY = 'math-english-monster-trainer:active-account:v1';
+const PetWorld3D = lazy(() => import('./PetWorld3D.jsx'));
 
 const PET_SKINS_BY_ID = Object.fromEntries(PET_SKINS.map((skin) => [skin.id, skin]));
 
@@ -441,28 +444,192 @@ function createSpeechEngine() {
   return { speak, cancel };
 }
 
-function loadProfile() {
-  const empty = { bestScore: 0, collection: [], petDex: {}, foodBag: {}, mapProgress: {}, sessions: 0 };
+function makeTimestamp() {
+  return new Date().toISOString();
+}
+
+function getProfileStorageKey(accountId) {
+  return `${STORAGE_KEY}:profile:${accountId || 'guest'}`;
+}
+
+function cleanAccountText(value, fallback) {
+  const clean = String(value || '').trim().replace(/\s+/g, ' ').slice(0, 18);
+  return clean || fallback;
+}
+
+function makeAccountId(displayName, familyCode) {
+  const seed = `${displayName}|${familyCode}`
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^\p{Letter}\p{Number}]+/gu, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 42);
+  return seed || 'guest';
+}
+
+function makeDefaultAccount() {
+  const now = makeTimestamp();
+  return {
+    id: 'guest',
+    displayName: '小小訓練師',
+    familyCode: 'local',
+    createdAt: now,
+    lastLoginAt: now,
+  };
+}
+
+function normalizeAccount(rawAccount) {
+  if (!rawAccount || typeof rawAccount !== 'object') return null;
+  const displayName = cleanAccountText(rawAccount.displayName, '小小訓練師');
+  const familyCode = cleanAccountText(rawAccount.familyCode, 'local');
+  const id = cleanAccountText(rawAccount.id, makeAccountId(displayName, familyCode));
+  return {
+    id,
+    displayName,
+    familyCode,
+    createdAt: rawAccount.createdAt || makeTimestamp(),
+    lastLoginAt: rawAccount.lastLoginAt || rawAccount.createdAt || makeTimestamp(),
+  };
+}
+
+function loadAccounts() {
+  const fallback = makeDefaultAccount();
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return empty;
-    const parsed = JSON.parse(raw);
-    const collection = Array.isArray(parsed.collection) ? parsed.collection : [];
-    return {
-      bestScore: Number(parsed.bestScore) || 0,
-      collection,
-      petDex: normalizePetDex(parsed.petDex, collection),
-      foodBag: normalizeFoodBag(parsed.foodBag),
-      mapProgress: normalizeMapProgress(parsed.mapProgress),
-      sessions: Number(parsed.sessions) || 0,
-    };
+    const raw = localStorage.getItem(ACCOUNT_INDEX_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    const accounts = Array.isArray(parsed)
+      ? parsed.map(normalizeAccount).filter(Boolean)
+      : [];
+    if (accounts.length > 0) return accounts;
+
+    localStorage.setItem(ACCOUNT_INDEX_KEY, JSON.stringify([fallback]));
+    localStorage.setItem(ACTIVE_ACCOUNT_KEY, fallback.id);
+    return [fallback];
   } catch {
-    return empty;
+    return [fallback];
   }
 }
 
-function saveProfile(profile) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+function saveAccounts(accounts, activeAccountId) {
+  const normalized = accounts.map(normalizeAccount).filter(Boolean);
+  localStorage.setItem(ACCOUNT_INDEX_KEY, JSON.stringify(normalized));
+  localStorage.setItem(ACTIVE_ACCOUNT_KEY, activeAccountId || normalized[0]?.id || 'guest');
+}
+
+function loadActiveAccount(accounts) {
+  const fallback = accounts[0] || makeDefaultAccount();
+  try {
+    const activeId = localStorage.getItem(ACTIVE_ACCOUNT_KEY);
+    return accounts.find((account) => account.id === activeId) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function makeEmptyProfile(account) {
+  return {
+    accountId: account?.id || 'guest',
+    ownerName: account?.displayName || '小小訓練師',
+    bestScore: 0,
+    collection: [],
+    petDex: {},
+    foodBag: {},
+    mapProgress: {},
+    sessions: 0,
+    updatedAt: makeTimestamp(),
+  };
+}
+
+function normalizeProfile(parsed, account) {
+  const empty = makeEmptyProfile(account);
+  const collection = Array.isArray(parsed?.collection) ? parsed.collection : [];
+  return {
+    ...empty,
+    bestScore: Number(parsed?.bestScore) || 0,
+    collection,
+    petDex: normalizePetDex(parsed?.petDex, collection),
+    foodBag: normalizeFoodBag(parsed?.foodBag),
+    mapProgress: normalizeMapProgress(parsed?.mapProgress),
+    sessions: Number(parsed?.sessions) || 0,
+    updatedAt: parsed?.updatedAt || empty.updatedAt,
+  };
+}
+
+function loadProfile(account) {
+  const targetAccount = normalizeAccount(account) || makeDefaultAccount();
+  try {
+    const raw = localStorage.getItem(getProfileStorageKey(targetAccount.id));
+    if (raw) return normalizeProfile(JSON.parse(raw), targetAccount);
+
+    if (targetAccount.id === 'guest') {
+      const legacyRaw = localStorage.getItem(STORAGE_KEY);
+      if (legacyRaw) {
+        const migrated = normalizeProfile(JSON.parse(legacyRaw), targetAccount);
+        saveProfile(targetAccount, migrated);
+        return migrated;
+      }
+    }
+
+    return makeEmptyProfile(targetAccount);
+  } catch {
+    return makeEmptyProfile(targetAccount);
+  }
+}
+
+function saveProfile(account, profile) {
+  const targetAccount = normalizeAccount(account) || makeDefaultAccount();
+  const normalized = normalizeProfile({
+    ...profile,
+    accountId: targetAccount.id,
+    ownerName: targetAccount.displayName,
+    updatedAt: makeTimestamp(),
+  }, targetAccount);
+  localStorage.setItem(getProfileStorageKey(targetAccount.id), JSON.stringify(normalized));
+  return normalized;
+}
+
+function loadAccountSession() {
+  const accounts = loadAccounts();
+  const activeAccount = loadActiveAccount(accounts);
+  return {
+    accounts,
+    activeAccount,
+    profile: loadProfile(activeAccount),
+  };
+}
+
+function createProfileRun(profile, options = {}) {
+  return createInitialRun({
+    mode: options.mode || 'mixed',
+    grade: options.grade || 'grade2',
+    difficulty: options.difficulty || 'sprout',
+    savedCollection: profile.collection,
+    savedPetDex: profile.petDex,
+    savedFoodBag: profile.foodBag,
+    phase: options.phase || 'map',
+    stageIndex: options.stageIndex || 0,
+  });
+}
+
+function getOwnedPetEntries(collection = [], petDex = {}) {
+  const ownedIds = new Set(collection);
+  return MONSTERS
+    .map((monster) => {
+      const pet = petDex?.[monster.id] || null;
+      if (!ownedIds.has(monster.id) && !pet) return null;
+      const stage = getPetStage(pet);
+      const displayMonster = applySkinToMonster(monster, pet?.activeSkin);
+      return {
+        id: monster.id,
+        monster,
+        displayMonster,
+        pet,
+        stage,
+        displayName: getEvolutionName(monster, stage.level),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => (b.pet?.xp || 0) - (a.pet?.xp || 0));
 }
 
 function makeReviewQuestion(question, answeredCount) {
@@ -893,17 +1060,17 @@ function ModeControls({ mode, grade, difficulty, onModeChange, onGradeChange, on
   );
 }
 
-function FoodPack({ foodBag, leadPet, onFeedFood }) {
+function FoodPack({ foodBag, selectedPet, onFeedFood }) {
   return (
     <div className="food-pack" aria-label="點心包">
       <div className="mission-head">
         <span>點心包</span>
-        <strong>{leadPet ? '可餵食' : '先收服'}</strong>
+        <strong>{selectedPet ? selectedPet.displayName : '先收服'}</strong>
       </div>
       <div className="food-grid">
         {PET_FOODS.map((food) => {
           const amount = foodBag?.[food.id] || 0;
-          const disabled = amount <= 0 || !leadPet;
+          const disabled = amount <= 0 || !selectedPet;
           return (
             <button
               key={food.id}
@@ -924,6 +1091,66 @@ function FoodPack({ foodBag, leadPet, onFeedFood }) {
       </div>
       <p>表現越穩，點心越稀有。</p>
     </div>
+  );
+}
+
+function PetDexPanel({ ownedPets, selectedPetId, onSelectPet }) {
+  const ownedById = new Map(ownedPets.map((entry) => [entry.id, entry]));
+  const complete = ownedPets.length >= MONSTERS.length;
+
+  return (
+    <section className="pet-dex-panel" aria-label="寵物圖鑑">
+      <div className="mission-head">
+        <span>寵物圖鑑</span>
+        <strong>{complete ? '收齊了！' : `${ownedPets.length}/${MONSTERS.length}`}</strong>
+      </div>
+      <div className="pet-dex-grid">
+        {MONSTERS.map((monster) => {
+          const entry = ownedById.get(monster.id);
+          const owned = Boolean(entry);
+          const selected = selectedPetId === monster.id;
+          return (
+            <button
+              key={monster.id}
+              type="button"
+              className={`pet-dex-card ${owned ? 'owned' : 'locked'} ${selected ? 'selected' : ''}`}
+              onClick={() => owned && onSelectPet(monster.id)}
+              disabled={!owned}
+              style={{
+                '--dex-a': entry?.displayMonster.colorA || monster.colorA,
+                '--dex-b': entry?.displayMonster.colorB || monster.colorB,
+                '--dex-c': entry?.displayMonster.colorC || monster.colorC,
+              }}
+            >
+              <span className="dex-orb">
+                {owned ? (
+                  <MonsterFigure
+                    monster={entry.displayMonster}
+                    hpRatio={1}
+                    isFriend
+                    growth={Math.min(1.08, entry.stage.size)}
+                    accessory={entry.pet.accessory}
+                    evoStage={entry.stage.evoStage}
+                  />
+                ) : (
+                  <i>?</i>
+                )}
+              </span>
+              <strong>{owned ? entry.displayName : '???'}</strong>
+              <em>{owned ? `Lv.${entry.stage.level} ${entry.pet.accessory.label}` : monster.habitat}</em>
+              {entry?.pet?.skins?.length ? (
+                <div className="skin-dots" aria-label="變色皮膚">
+                  {entry.pet.skins.map((skinId) => {
+                    const skin = PET_SKINS_BY_ID[skinId];
+                    return skin ? <i key={skinId} title={`${skin.label}色`} style={{ background: skin.colorA }} /> : null;
+                  })}
+                </div>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -955,12 +1182,12 @@ function EggCard({ egg }) {
   );
 }
 
-function ProgressRail({ run, profile, onFeedFood }) {
+function ProgressRail({ run, profile, ownedPets, selectedPetId, onSelectPet, onFeedFood }) {
   const summary = summarizeRun(run);
   const missionProgress = Math.min(5, run.correctCount);
   const outlineSubject = run.mode === 'mixed' ? run.question.subject : run.mode;
   const outline = CURRICULUM_OUTLINE[run.grade]?.[outlineSubject] || [];
-  const leadPet = getStrongestPet(run.petDex);
+  const selectedPet = ownedPets.find((entry) => entry.id === selectedPetId) || ownedPets[0] || null;
   return (
     <aside className="progress-rail" aria-label="進度">
       <div className="panel-title">
@@ -1024,35 +1251,8 @@ function ProgressRail({ run, profile, onFeedFood }) {
         </div>
       </div>
       <EggCard egg={run.currentEgg} />
-      <FoodPack foodBag={run.foodBag} leadPet={leadPet} onFeedFood={onFeedFood} />
-      <div className="collection-grid">
-        {MONSTERS.map((monster) => {
-          const owned = run.collection.includes(monster.id) || profile.collection.includes(monster.id);
-          const pet = run.petDex?.[monster.id] || profile.petDex?.[monster.id];
-          const stage = pet ? getPetStage(pet) : null;
-          const displayName = owned && stage ? getEvolutionName(monster, stage.level) : monster.name;
-          return (
-            <div
-              key={monster.id}
-              className={owned ? 'collection-chip owned' : 'collection-chip'}
-              title={owned && pet ? `${displayName} Lv.${stage.level} ${pet.accessory.label}` : monster.name}
-              style={{ '--chip-scale': stage?.size || 0.86 }}
-            >
-              <span style={{ background: monster.colorA }} />
-              <small>{owned ? displayName : '???'}</small>
-              <em>{owned && pet ? `Lv.${stage.level} ${pet.accessory.label}` : '未收服'}</em>
-              {pet?.skins?.length ? (
-                <div className="skin-dots" aria-label="變色皮膚">
-                  {pet.skins.map((skinId) => {
-                    const skin = PET_SKINS_BY_ID[skinId];
-                    return skin ? <i key={skinId} title={`${skin.label}色`} style={{ background: skin.colorA }} /> : null;
-                  })}
-                </div>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
+      <FoodPack foodBag={run.foodBag} selectedPet={selectedPet} onFeedFood={onFeedFood} />
+      <PetDexPanel ownedPets={ownedPets} selectedPetId={selectedPetId} onSelectPet={onSelectPet} />
       <div className="run-log">
         {run.log.slice(0, 4).map((entry, index) => (
           <div key={`${entry}-${index}`}>{entry}</div>
@@ -1091,32 +1291,79 @@ function CaptureFx({ fx }) {
   );
 }
 
-function Arena({ run, lastImpact, petAction, burst, speechState, damagePop, captureFx, onPetInteract }) {
-  const hpRatio = Math.max(0, run.monsterHp / run.monsterMaxHp);
-  const boss = isBossWave(run.waveInStage);
-  const activePet = run.petDex?.[run.monster.id];
-  const activeStage = activePet ? getPetStage(activePet) : null;
-  const leadPet = getStrongestPet(run.petDex);
-  const leadMonsterBase = leadPet ? MONSTERS.find((monster) => monster.id === leadPet.id) : null;
-  const leadStage = leadPet ? getPetStage(leadPet) : null;
-  const friendMonsterId = leadPet?.id || 'companion';
-  const friendAction = petAction && petAction.monsterId === friendMonsterId
-    ? petAction.type
-    : speechState === 'speaking'
-      ? 'talk'
-      : null;
-  const leadMonster = leadMonsterBase
-    ? applySkinToMonster(leadMonsterBase, leadPet.activeSkin)
-    : null;
-  const friend = leadMonster
-    ? { ...leadMonster, name: `${getEvolutionName(leadMonsterBase, leadStage.level)} Lv.${leadStage.level}` }
-    : {
+function PetSwarm({ ownedPets, selectedPetId, petAction, speechState, onSelectPet, onPetInteract }) {
+  if (ownedPets.length === 0) {
+    const companion = {
       id: 'companion',
       name: '星芽夥伴',
       colorA: '#1f9d78',
       colorB: '#f7d154',
       colorC: '#ff8f6b',
     };
+    return (
+      <div className="trainer-side solo">
+        <MonsterFigure
+          monster={companion}
+          hpRatio={1}
+          isFriend
+          action={speechState === 'speaking' ? 'talk' : petAction?.monsterId === 'companion' ? petAction.type : null}
+          onInteract={() => onPetInteract('companion', 'friend')}
+        />
+        <div className={speechState === 'speaking' ? 'speech-chip is-speaking' : 'speech-chip'}>
+          星芽夥伴
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="trainer-side pet-swarm" aria-label="我的寵物小隊">
+      <div className="swarm-line">
+        {ownedPets.slice(0, 6).map((entry, index) => {
+          const selected = entry.id === selectedPetId;
+          const action = petAction?.monsterId === entry.id
+            ? petAction.type
+            : selected && speechState === 'speaking'
+              ? 'talk'
+              : null;
+          return (
+            <button
+              key={entry.id}
+              type="button"
+              className={`swarm-pet ${selected ? 'selected' : ''}`}
+              onClick={() => {
+                onSelectPet(entry.id);
+                onPetInteract(entry.id, 'friend');
+              }}
+              style={{ '--swarm-index': index }}
+              aria-label={`選擇${entry.displayName}`}
+            >
+              <MonsterFigure
+                monster={{ ...entry.displayMonster, name: entry.displayName }}
+                hpRatio={1}
+                isFriend
+                growth={selected ? Math.min(1.2, entry.stage.size) : Math.min(0.96, entry.stage.size)}
+                accessory={entry.pet.accessory}
+                action={action}
+                evoStage={entry.stage.evoStage}
+              />
+              <span>{entry.displayName}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className={speechState === 'speaking' ? 'speech-chip is-speaking' : 'speech-chip'}>
+        {ownedPets.find((entry) => entry.id === selectedPetId)?.displayName || ownedPets[0]?.displayName} 小隊集合
+      </div>
+    </div>
+  );
+}
+
+function Arena({ run, ownedPets, selectedPetId, lastImpact, petAction, burst, speechState, damagePop, captureFx, onSelectPet, onPetInteract }) {
+  const hpRatio = Math.max(0, run.monsterHp / run.monsterMaxHp);
+  const boss = isBossWave(run.waveInStage);
+  const activePet = run.petDex?.[run.monster.id];
+  const activeStage = activePet ? getPetStage(activePet) : null;
   const sceneStyle = {
     '--scene-a': run.monster.colorA,
     '--scene-b': run.monster.colorB,
@@ -1129,6 +1376,16 @@ function Arena({ run, lastImpact, petAction, burst, speechState, damagePop, capt
       aria-label="訓練場"
       style={sceneStyle}
     >
+      <Suspense fallback={<div className="pet-world-3d is-loading" aria-hidden="true" />}>
+        <PetWorld3D
+          monster={run.monster}
+          ownedPets={ownedPets}
+          selectedPetId={selectedPetId}
+          stageIndex={run.stageIndex}
+          boss={boss}
+          petAction={petAction}
+        />
+      </Suspense>
       <div className="parallax-scene" aria-hidden="true">
         <div className="parallax-layer layer-sky">
           <span className="drift-cloud cloud-a" />
@@ -1174,22 +1431,14 @@ function Arena({ run, lastImpact, petAction, burst, speechState, damagePop, capt
       />
       <DamagePop pop={damagePop} />
       <CaptureFx fx={captureFx} />
-      <div className="trainer-side">
-        <MonsterFigure
-          monster={friend}
-          hpRatio={1}
-          isFriend
-          isHit={lastImpact === 'miss'}
-          growth={leadStage ? Math.min(1.16, leadStage.size) : 1}
-          accessory={leadPet?.accessory}
-          action={friendAction}
-          onInteract={() => onPetInteract(friendMonsterId, 'friend')}
-          evoStage={leadStage?.evoStage || 0}
-        />
-        <div className={speechState === 'speaking' ? 'speech-chip is-speaking' : 'speech-chip'}>
-          {run.feedback ? run.feedback.title : leadPet ? `${leadPet.accessory.label} ${leadStage.title}` : run.question.label}
-        </div>
-      </div>
+      <PetSwarm
+        ownedPets={ownedPets}
+        selectedPetId={selectedPetId}
+        petAction={petAction}
+        speechState={speechState}
+        onSelectPet={onSelectPet}
+        onPetInteract={onPetInteract}
+      />
       <RewardBurst burst={burst} />
       {petAction?.food ? (
         <div key={petAction.key} className={`feeding-treat tier-${petAction.food.tier}`}>
@@ -1350,13 +1599,80 @@ function SoundControls({ enabled, audioState, onToggle, onTest }) {
   );
 }
 
+function AccountPanel({ account, accounts, onLogin, onSwitch }) {
+  const [displayName, setDisplayName] = useState(account.displayName || '');
+  const [familyCode, setFamilyCode] = useState(account.familyCode === 'local' ? '' : account.familyCode || '');
+
+  useEffect(() => {
+    setDisplayName(account.displayName || '');
+    setFamilyCode(account.familyCode === 'local' ? '' : account.familyCode || '');
+  }, [account.id, account.displayName, account.familyCode]);
+
+  const submitLogin = (event) => {
+    event.preventDefault();
+    onLogin({
+      displayName,
+      familyCode,
+    });
+  };
+
+  return (
+    <details className="account-menu">
+      <summary>
+        <span>帳號</span>
+        <strong>{account.displayName}</strong>
+      </summary>
+      <div className="account-popover">
+        <form className="account-form" onSubmit={submitLogin}>
+          <label>
+            <span>名字</span>
+            <input
+              value={displayName}
+              onChange={(event) => setDisplayName(event.target.value)}
+              placeholder="孩子名字"
+              autoComplete="username"
+            />
+          </label>
+          <label>
+            <span>家庭代號</span>
+            <input
+              value={familyCode}
+              onChange={(event) => setFamilyCode(event.target.value)}
+              placeholder="例如 home01"
+              autoComplete="current-password"
+            />
+          </label>
+          <button type="submit">登入 / 建立</button>
+        </form>
+        <div className="account-list" aria-label="已建立帳號">
+          {accounts.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={item.id === account.id ? 'active' : ''}
+              onClick={() => onSwitch(item.id)}
+            >
+              <strong>{item.displayName}</strong>
+              <span>{item.familyCode}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </details>
+  );
+}
+
 function TopBar({
   run,
   profile,
+  account,
+  accounts,
   soundEnabled,
   audioState,
   onSoundToggle,
   onSoundTest,
+  onLogin,
+  onSwitchAccount,
   onModeChange,
   onGradeChange,
   onDifficultyChange,
@@ -1379,6 +1695,12 @@ function TopBar({
         onDifficultyChange={onDifficultyChange}
       />
       <div className="stats">
+        <AccountPanel
+          account={account}
+          accounts={accounts}
+          onLogin={onLogin}
+          onSwitch={onSwitchAccount}
+        />
         <SoundControls
           enabled={soundEnabled}
           audioState={audioState}
@@ -1561,19 +1883,15 @@ function HatchOverlay({ fx, onDismiss }) {
 }
 
 export default function App() {
-  const [profile, setProfile] = useState(loadProfile);
-  const [run, setRun] = useState(() => {
-    const savedProfile = loadProfile();
-    return createInitialRun({
-      mode: 'mixed',
-      grade: 'grade2',
-      difficulty: 'sprout',
-      savedCollection: savedProfile.collection,
-      savedPetDex: savedProfile.petDex,
-      savedFoodBag: savedProfile.foodBag,
-      phase: 'map',
-    });
-  });
+  const initialSessionRef = useRef(null);
+  if (!initialSessionRef.current) {
+    initialSessionRef.current = loadAccountSession();
+  }
+  const [accounts, setAccounts] = useState(initialSessionRef.current.accounts);
+  const [activeAccount, setActiveAccount] = useState(initialSessionRef.current.activeAccount);
+  const [profile, setProfile] = useState(initialSessionRef.current.profile);
+  const [run, setRun] = useState(() => createProfileRun(initialSessionRef.current.profile));
+  const [selectedPetId, setSelectedPetId] = useState(() => getStrongestPet(initialSessionRef.current.profile.petDex)?.id || null);
   const [lastImpact, setLastImpact] = useState(null);
   const [petAction, setPetAction] = useState(null);
   const [burst, setBurst] = useState(null);
@@ -1707,6 +2025,8 @@ export default function App() {
       });
     }
     const nextProfile = {
+      accountId: activeAccount.id,
+      ownerName: activeAccount.displayName,
       bestScore: Math.max(profile.bestScore, nextRun.score),
       collection,
       petDex: normalizePetDex({ ...profile.petDex, ...nextRun.petDex }, collection),
@@ -1714,9 +2034,12 @@ export default function App() {
       mapProgress: normalizeMapProgress(mapProgress),
       sessions: profile.sessions + (nextRun.phase === 'playing' ? 0 : 1),
     };
-    setProfile(nextProfile);
-    saveProfile(nextProfile);
-    return nextProfile;
+    const savedProfile = saveProfile(activeAccount, nextProfile);
+    setProfile(savedProfile);
+    if (!selectedPetId || !savedProfile.collection.includes(selectedPetId)) {
+      setSelectedPetId(getStrongestPet(savedProfile.petDex)?.id || savedProfile.collection[0] || null);
+    }
+    return savedProfile;
   };
 
   const clearTransientFx = () => {
@@ -1733,6 +2056,51 @@ export default function App() {
     window.clearTimeout(damagePopTimeoutRef.current);
     window.clearTimeout(captureFxTimeoutRef.current);
     speechEngineRef.current?.cancel();
+  };
+
+  const activateAccount = (account, nextAccounts = accounts) => {
+    const normalizedAccount = normalizeAccount(account) || makeDefaultAccount();
+    const normalizedAccounts = nextAccounts.map(normalizeAccount).filter(Boolean);
+    clearTransientFx();
+    saveAccounts(normalizedAccounts, normalizedAccount.id);
+    const nextProfile = saveProfile(normalizedAccount, loadProfile(normalizedAccount));
+    setAccounts(normalizedAccounts);
+    setActiveAccount(normalizedAccount);
+    setProfile(nextProfile);
+    setSelectedPetId(getStrongestPet(nextProfile.petDex)?.id || nextProfile.collection[0] || null);
+    setRun(createProfileRun(nextProfile, {
+      mode: run.mode,
+      grade: run.grade,
+      difficulty: run.difficulty,
+      phase: 'map',
+    }));
+    void playSound('select');
+  };
+
+  const loginAccount = ({ displayName, familyCode }) => {
+    const nextName = cleanAccountText(displayName, '小小訓練師');
+    const nextFamily = cleanAccountText(familyCode, 'local');
+    const now = makeTimestamp();
+    const nextAccount = normalizeAccount({
+      id: makeAccountId(nextName, nextFamily),
+      displayName: nextName,
+      familyCode: nextFamily,
+      createdAt: accounts.find((account) => account.id === makeAccountId(nextName, nextFamily))?.createdAt || now,
+      lastLoginAt: now,
+    });
+    const nextAccounts = [
+      nextAccount,
+      ...accounts.filter((account) => account.id !== nextAccount.id),
+    ];
+    activateAccount(nextAccount, nextAccounts);
+  };
+
+  const switchAccount = (accountId) => {
+    const target = accounts.find((account) => account.id === accountId);
+    if (!target || target.id === activeAccount.id) return;
+    const nextAccount = { ...target, lastLoginAt: makeTimestamp() };
+    const nextAccounts = accounts.map((account) => (account.id === nextAccount.id ? nextAccount : account));
+    activateAccount(nextAccount, nextAccounts);
   };
 
   const resetRun = (mode = run.mode, grade = run.grade, difficulty = run.difficulty, { phase = 'map', stageIndex = 0 } = {}) => {
@@ -1980,8 +2348,8 @@ export default function App() {
     }
   };
 
-  const feedLeadPet = (foodId) => {
-    const leadPet = getStrongestPet(run.petDex);
+  const feedSelectedPet = (foodId) => {
+    const leadPet = run.petDex?.[selectedPetId] || getStrongestPet(run.petDex);
     const amount = run.foodBag?.[foodId] || 0;
     if (!leadPet || amount <= 0) return;
 
@@ -2026,6 +2394,7 @@ export default function App() {
     if (rareFood && !leveledUp) window.setTimeout(() => void playSound('rare'), 180);
     setRun(nextRun);
     saveRunProfile(nextRun);
+    setSelectedPetId(leadPet.id);
     showBurst({
       type: leveledUp ? 'level' : rareFood ? 'rare' : 'feed',
       label: leveledUp ? `長大 Lv.${result.stage.level}` : result.food.label,
@@ -2180,6 +2549,29 @@ export default function App() {
     }
   };
 
+  const combinedCollection = useMemo(
+    () => [...new Set([...(profile.collection || []), ...(run.collection || [])])],
+    [profile.collection, run.collection],
+  );
+  const combinedPetDex = useMemo(
+    () => normalizePetDex({ ...(profile.petDex || {}), ...(run.petDex || {}) }, combinedCollection),
+    [profile.petDex, run.petDex, combinedCollection],
+  );
+  const ownedPets = useMemo(
+    () => getOwnedPetEntries(combinedCollection, combinedPetDex),
+    [combinedCollection, combinedPetDex],
+  );
+
+  useEffect(() => {
+    if (ownedPets.length === 0) {
+      if (selectedPetId) setSelectedPetId(null);
+      return;
+    }
+    if (!selectedPetId || !ownedPets.some((entry) => entry.id === selectedPetId)) {
+      setSelectedPetId(ownedPets[0].id);
+    }
+  }, [ownedPets, selectedPetId]);
+
   const energyStyle = useMemo(() => ({ width: `${run.energy}%` }), [run.energy]);
 
   return (
@@ -2187,6 +2579,8 @@ export default function App() {
       <TopBar
         run={run}
         profile={profile}
+        account={activeAccount}
+        accounts={accounts}
         soundEnabled={soundEnabled}
         audioState={audioState}
         onSoundToggle={() => {
@@ -2201,6 +2595,8 @@ export default function App() {
           soundNeedsUnlockRef.current = false;
           void playSound('test', { force: true });
         }}
+        onLogin={loginAccount}
+        onSwitchAccount={switchAccount}
         onModeChange={changeMode}
         onGradeChange={changeGrade}
         onDifficultyChange={changeDifficulty}
@@ -2209,15 +2605,25 @@ export default function App() {
         <span style={energyStyle} />
       </div>
       <main className="game-layout">
-        <ProgressRail run={run} profile={profile} onFeedFood={feedLeadPet} />
+        <ProgressRail
+          run={run}
+          profile={profile}
+          ownedPets={ownedPets}
+          selectedPetId={selectedPetId}
+          onSelectPet={setSelectedPetId}
+          onFeedFood={feedSelectedPet}
+        />
         <Arena
           run={run}
+          ownedPets={ownedPets}
+          selectedPetId={selectedPetId}
           lastImpact={lastImpact}
           petAction={petAction}
           burst={burst}
           speechState={speechState}
           damagePop={damagePop}
           captureFx={captureFx}
+          onSelectPet={setSelectedPetId}
           onPetInteract={interactWithPet}
         />
         <QuizPanel

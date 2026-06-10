@@ -225,6 +225,128 @@ p {
   opacity: 0.52;
 }
 
+.account-menu {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 156px;
+}
+
+.account-menu summary {
+  display: grid;
+  min-height: 40px;
+  align-content: center;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+  list-style: none;
+}
+
+.account-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.account-menu summary span,
+.account-menu summary strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-menu summary span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.account-menu summary strong {
+  color: var(--teal-dark);
+  font-size: 0.9rem;
+}
+
+.account-popover {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 8px);
+  right: 0;
+  display: grid;
+  width: min(310px, calc(100vw - 28px));
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 40px rgba(32, 49, 58, 0.18);
+}
+
+.account-form {
+  display: grid;
+  gap: 8px;
+}
+
+.account-form label {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.account-form input {
+  width: 100%;
+  min-height: 38px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.88rem;
+}
+
+.account-form button,
+.account-list button {
+  min-height: 38px;
+  border: 1px solid rgba(22, 143, 128, 0.24);
+  border-radius: 8px;
+  background: rgba(22, 143, 128, 0.1);
+  color: var(--teal-dark);
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.account-list {
+  display: grid;
+  gap: 6px;
+  max-height: 154px;
+  overflow: auto;
+}
+
+.account-list button {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 9px;
+  background: rgba(32, 49, 58, 0.04);
+  color: var(--ink);
+}
+
+.account-list button.active {
+  border-color: rgba(22, 143, 128, 0.5);
+  background: rgba(22, 143, 128, 0.14);
+}
+
+.account-list span {
+  overflow: hidden;
+  max-width: 110px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .heart-row {
   display: flex;
   min-width: 86px;
@@ -257,6 +379,19 @@ p {
   font-family: Nunito, sans-serif;
   font-size: 1rem;
   line-height: 1;
+}
+
+@media (min-width: 761px) {
+  .progress-rail,
+  .quiz-panel {
+    max-height: calc(100vh - 168px);
+    overflow: auto;
+  }
+
+  .arena {
+    min-height: calc(100vh - 210px);
+    max-height: calc(100vh - 168px);
+  }
 }
 
 .energy-strip {
@@ -637,6 +772,115 @@ p {
   color: var(--teal-dark);
 }
 
+.pet-dex-panel {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(105, 199, 217, 0.28);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at top left, rgba(105, 199, 217, 0.18), transparent 48%),
+    rgba(255, 255, 255, 0.78);
+}
+
+.pet-dex-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pet-dex-card {
+  display: grid;
+  min-width: 0;
+  min-height: 142px;
+  gap: 4px;
+  justify-items: center;
+  padding: 8px 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--dex-c, #ffd76d) 26%, transparent), transparent 42%),
+    rgba(255, 255, 255, 0.86);
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.pet-dex-card:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--dex-a, #168f80) 48%, #ffffff);
+  box-shadow: 0 8px 18px rgba(32, 49, 58, 0.1);
+  transform: translateY(-1px);
+}
+
+.pet-dex-card.selected {
+  border-color: color-mix(in srgb, var(--dex-c, #ffd76d) 72%, #20313a);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dex-c, #ffd76d) 22%, transparent);
+}
+
+.pet-dex-card.locked {
+  cursor: not-allowed;
+  filter: grayscale(0.82);
+  opacity: 0.56;
+}
+
+.dex-orb {
+  position: relative;
+  display: grid;
+  width: 78px;
+  height: 70px;
+  place-items: center;
+}
+
+.dex-orb::before {
+  position: absolute;
+  right: 8%;
+  bottom: 3px;
+  left: 8%;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(32, 49, 58, 0.1);
+  content: '';
+}
+
+.dex-orb .monster-figure {
+  width: 72px;
+  filter: drop-shadow(0 8px 10px rgba(32, 49, 58, 0.12));
+}
+
+.dex-orb i {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(32, 49, 58, 0.14);
+  color: rgba(32, 49, 58, 0.42);
+  font-family: Nunito, sans-serif;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.pet-dex-card strong,
+.pet-dex-card em {
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pet-dex-card strong {
+  font-size: 0.76rem;
+}
+
+.pet-dex-card em {
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
 .run-log {
   display: grid;
   gap: 6px;
@@ -664,6 +908,37 @@ p {
     radial-gradient(circle at 84% 28%, rgba(47, 155, 216, 0.18), transparent 24%),
     radial-gradient(circle at 50% 70%, rgba(246, 201, 77, 0.3), transparent 34%),
     #f6fff8;
+}
+
+.pet-world-3d {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+}
+
+.pet-world-3d canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.pet-world-3d.is-loading {
+  background:
+    radial-gradient(circle at 32% 38%, rgba(255, 255, 255, 0.72), transparent 18%),
+    radial-gradient(circle at 64% 55%, color-mix(in srgb, var(--scene-c, #ffd76d) 22%, transparent), transparent 26%);
+  animation: world-loading-glow 1.8s ease-in-out infinite;
+}
+
+@keyframes world-loading-glow {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 0.9;
+  }
 }
 
 .arena::before,
@@ -1073,12 +1348,74 @@ p {
 
 .trainer-side {
   position: absolute;
-  z-index: 3;
+  z-index: 4;
   bottom: 36px;
   left: 36px;
   display: flex;
   align-items: end;
   gap: 12px;
+}
+
+.trainer-side.pet-swarm {
+  right: 28px;
+  left: 24px;
+  align-items: end;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.swarm-line {
+  display: flex;
+  align-items: end;
+  max-width: min(560px, calc(100% - 180px));
+  gap: clamp(2px, 0.8vw, 8px);
+  pointer-events: auto;
+}
+
+.swarm-pet {
+  position: relative;
+  display: grid;
+  width: clamp(58px, 7vw, 96px);
+  min-width: 0;
+  justify-items: center;
+  gap: 2px;
+  padding: 3px 2px 5px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transform: translateY(calc((var(--swarm-index, 0) % 2) * -6px));
+}
+
+.swarm-pet::before {
+  position: absolute;
+  right: 8px;
+  bottom: 21px;
+  left: 8px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(32, 49, 58, 0.12);
+  content: '';
+}
+
+.swarm-pet .monster-figure {
+  width: clamp(58px, 7vw, 96px);
+  filter: drop-shadow(0 10px 12px rgba(32, 49, 58, 0.16));
+}
+
+.swarm-pet.selected {
+  background: rgba(255, 255, 255, 0.54);
+  box-shadow: inset 0 0 0 2px rgba(246, 201, 77, 0.62), 0 8px 18px rgba(32, 49, 58, 0.12);
+}
+
+.swarm-pet span {
+  overflow: hidden;
+  max-width: 100%;
+  color: var(--teal-dark);
+  font-size: 0.62rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .feeding-treat {
@@ -1246,6 +1583,7 @@ p {
 
 .ground {
   position: absolute;
+  z-index: 1;
   right: 8%;
   bottom: 54px;
   left: 8%;
@@ -2000,6 +2338,14 @@ p {
     grid-template-columns: 1fr 1fr;
   }
 
+  .pet-dex-panel {
+    grid-column: 1 / -1;
+  }
+
+  .pet-dex-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .run-log {
     display: none;
   }
@@ -2039,6 +2385,27 @@ p {
     left: 14px;
   }
 
+  .trainer-side.pet-swarm {
+    right: 12px;
+    left: 12px;
+    bottom: 18px;
+    display: grid;
+    justify-items: start;
+  }
+
+  .swarm-line {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .swarm-pet {
+    width: clamp(50px, 15vw, 72px);
+  }
+
+  .swarm-pet .monster-figure {
+    width: clamp(50px, 15vw, 72px);
+  }
+
   .speech-chip {
     max-width: 132px;
     font-size: 0.78rem;
@@ -2070,6 +2437,17 @@ p {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .account-menu {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  .account-popover {
+    right: auto;
+    left: 0;
+    width: min(100%, calc(100vw - 20px));
+  }
+
   .sound-controls {
     grid-column: 1 / -1;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2096,6 +2474,14 @@ p {
   .summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .pet-dex-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pet-dex-card {
+    min-height: 126px;
+  }
 }
 
 /* ===== 3D 視差場景 ===== */
@@ -2108,9 +2494,11 @@ p {
 
 .parallax-scene {
   position: absolute;
+  z-index: 1;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
+  opacity: 0.32;
   transform-style: preserve-3d;
 }
 
