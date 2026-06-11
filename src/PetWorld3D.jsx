@@ -77,13 +77,14 @@ function Opponent3D({ monster, boss, active }) {
   useFrame((state) => {
     if (!groupRef.current) return;
     const hitPulse = active === 'poke' || active === 'cheer' ? Math.sin(state.clock.elapsedTime * 18) * 0.09 : 0;
-    groupRef.current.position.y = 0.42 + Math.sin(state.clock.elapsedTime * 1.7) * 0.1;
+    groupRef.current.position.x = 0.72 + Math.sin(state.clock.elapsedTime * 0.72) * 0.08;
+    groupRef.current.position.y = -0.14 + Math.sin(state.clock.elapsedTime * 1.7) * 0.08;
     groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.9) * 0.18;
-    groupRef.current.scale.setScalar((boss ? 0.72 : 0.62) + hitPulse);
+    groupRef.current.scale.setScalar((boss ? 0.42 : 0.36) + hitPulse);
   });
 
   return (
-    <group ref={groupRef} position={[2.05, 0.46, 0.52]}>
+    <group ref={groupRef} position={[0.72, -0.14, 1.18]}>
       <mesh>
         <sphereGeometry args={[0.58, 40, 24]} />
         <meshStandardMaterial color={colorA} roughness={0.5} metalness={0.04} emissive={colorA} emissiveIntensity={boss ? 0.2 : 0.06} />
@@ -114,18 +115,24 @@ function PetToken3D({ entry, index, selected, active }) {
   const colorA = makeColor(base?.colorA, '#7ecbff');
   const colorB = makeColor(base?.colorB, '#ffffff');
   const colorC = makeColor(base?.colorC, '#ffd76d');
-  const scale = selected ? 0.58 : 0.42;
+  const scale = selected ? 0.34 : 0.27;
   const position = useMemo(() => {
-    const count = 6;
-    const angle = Math.PI * 0.88 + (index / Math.max(1, count - 1)) * Math.PI * 0.78;
-    const radius = 2.05 + (index % 2) * 0.16;
-    return [Math.cos(angle) * radius - 0.34, -0.3 + (index % 2) * 0.07, Math.sin(angle) * 0.7 + 0.82];
+    const houseSpots = [
+      [-0.82, -0.58, 1.22],
+      [-0.32, -0.45, 1.2],
+      [0.18, -0.57, 1.23],
+      [0.58, -0.4, 1.2],
+      [-0.48, 0.1, 1.15],
+      [0.38, 0.08, 1.15],
+    ];
+    return houseSpots[index % houseSpots.length];
   }, [index]);
 
   useFrame((state) => {
     if (!groupRef.current) return;
     const t = state.clock.elapsedTime;
     const bounce = active === 'eat' ? Math.abs(Math.sin(t * 7.5)) * 0.22 : Math.sin(t * 2.1 + index) * 0.07;
+    groupRef.current.position.x = position[0] + Math.sin(t * 0.62 + index) * 0.08;
     groupRef.current.position.y = position[1] + bounce;
     groupRef.current.rotation.y = Math.sin(t * 1.2 + index) * 0.24;
     groupRef.current.scale.setScalar(scale + (selected ? Math.sin(t * 2.6) * 0.025 : 0));

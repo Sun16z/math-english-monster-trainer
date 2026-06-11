@@ -1217,11 +1217,121 @@ function HouseProgressCard({ house }) {
   );
 }
 
-function HouseVilla({ house }) {
+const HOUSE_PET_SPOTS = [
+  { x: '30%', y: '70%', scale: 0.94, depth: 12, delay: '-0.4s', walk: '8.8s', dx: '18px', dy: '-7px' },
+  { x: '68%', y: '68%', scale: 0.88, depth: 13, delay: '-2.1s', walk: '9.6s', dx: '-16px', dy: '-6px' },
+  { x: '50%', y: '55%', scale: 0.78, depth: 10, delay: '-4.3s', walk: '10.4s', dx: '22px', dy: '5px' },
+  { x: '31%', y: '38%', scale: 0.68, depth: 8, delay: '-1.5s', walk: '11.2s', dx: '14px', dy: '-4px' },
+  { x: '68%', y: '39%', scale: 0.68, depth: 9, delay: '-5.6s', walk: '10.8s', dx: '-14px', dy: '-5px' },
+  { x: '49%', y: '26%', scale: 0.62, depth: 7, delay: '-3.2s', walk: '12.4s', dx: '12px', dy: '4px' },
+  { x: '82%', y: '53%', scale: 0.58, depth: 11, delay: '-6.4s', walk: '9.9s', dx: '-12px', dy: '8px' },
+];
+
+function makeCompanionPet() {
+  return {
+    id: 'companion',
+    displayName: '星芽夥伴',
+    displayMonster: {
+      id: 'companion',
+      name: '星芽夥伴',
+      colorA: '#1f9d78',
+      colorB: '#f7d154',
+      colorC: '#ff8f6b',
+    },
+    pet: { accessory: null },
+    stage: { size: 1, evoStage: 0 },
+  };
+}
+
+function HousePetButton({
+  occupant,
+  index,
+  selected = false,
+  action = null,
+  onSelectPet,
+  onPetInteract,
+}) {
+  const spot = HOUSE_PET_SPOTS[index % HOUSE_PET_SPOTS.length];
+  const petScale = (spot.scale || 0.58) * (occupant.size || 1);
+  return (
+    <button
+      type="button"
+      className={`house-pet ${selected ? 'selected' : ''} ${occupant.kind === 'opponent' ? 'is-opponent' : 'is-friend'}`}
+      style={{
+        '--pet-x': spot.x,
+        '--pet-y': spot.y,
+        '--pet-scale': petScale,
+        '--pet-depth': spot.depth,
+        '--pet-delay': spot.delay,
+        '--pet-walk': spot.walk,
+        '--pet-dx': spot.dx,
+        '--pet-dy': spot.dy,
+      }}
+      aria-label={`和${occupant.name}互動`}
+      onClick={() => {
+        if (occupant.selectable && onSelectPet) onSelectPet(occupant.id);
+        if (onPetInteract) onPetInteract(occupant.id, occupant.kind === 'opponent' ? 'opponent' : 'friend');
+      }}
+    >
+      <MonsterFigure
+        monster={occupant.monster}
+        hpRatio={occupant.hpRatio || 1}
+        isHit={occupant.isHit}
+        isFriend={occupant.kind !== 'opponent'}
+        growth={1}
+        accessory={occupant.accessory}
+        action={action}
+        evoStage={occupant.evoStage || 0}
+        isBoss={occupant.isBoss}
+      />
+    </button>
+  );
+}
+
+function HouseVilla({
+  house,
+  monster,
+  hpRatio = 1,
+  boss = false,
+  activePet = null,
+  activeStage = null,
+  ownedPets = [],
+  selectedPetId = null,
+  lastImpact = null,
+  petAction = null,
+  speechState = 'idle',
+  onSelectPet,
+  onPetInteract,
+}) {
   const safeHouse = normalizeHouse(house);
   const built = new Set(safeHouse.built);
   const has = (id) => built.has(id);
   const newestId = safeHouse.built[safeHouse.built.length - 1] || null;
+  const houseMates = ownedPets.length > 0 ? ownedPets.slice(0, 5) : [makeCompanionPet()];
+  const occupants = [
+    {
+      id: monster.id,
+      kind: 'opponent',
+      name: monster.name,
+      monster,
+      hpRatio,
+      isHit: lastImpact === 'hit',
+      isBoss: boss,
+      size: Math.min(1.1, (activeStage?.size || 1) * (boss ? 0.94 : 0.82)),
+      accessory: activePet?.accessory,
+      evoStage: activeStage?.evoStage || 0,
+    },
+    ...houseMates.map((entry) => ({
+      id: entry.id,
+      kind: 'friend',
+      name: entry.displayName,
+      monster: { ...entry.displayMonster, name: entry.displayName },
+      selectable: entry.id !== 'companion',
+      size: entry.id === selectedPetId ? Math.min(1.12, entry.stage.size) : Math.min(0.92, entry.stage.size),
+      accessory: entry.pet.accessory,
+      evoStage: entry.stage.evoStage,
+    })),
+  ];
 
   return (
     <div className="villa-stage" aria-label="豪華別墅">
@@ -1267,6 +1377,27 @@ function HouseVilla({ house }) {
             {has('sink') ? <i className={`furniture sink ${newestId === 'sink' ? 'new' : ''}`} /> : null}
             {has('bathtub') ? <i className={`furniture bathtub ${newestId === 'bathtub' ? 'new' : ''}`} /> : null}
           </span>
+          <div className="villa-house-pets" aria-label="屋內寵物">
+            {occupants.map((occupant, index) => {
+              const selected = occupant.id === selectedPetId;
+              const action = petAction?.monsterId === occupant.id
+                ? petAction.type
+                : selected && speechState === 'speaking'
+                  ? 'talk'
+                  : null;
+              return (
+                <HousePetButton
+                  key={`${occupant.kind}-${occupant.id}`}
+                  occupant={occupant}
+                  index={index}
+                  selected={selected}
+                  action={action}
+                  onSelectPet={onSelectPet}
+                  onPetInteract={onPetInteract}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
       <div className="villa-built-list" aria-label="已完成建材">
@@ -1505,7 +1636,21 @@ function Arena({ run, ownedPets, selectedPetId, lastImpact, petAction, burst, sp
           <span className="crystal c3" />
         </div>
       </div>
-      <HouseVilla house={run.house} />
+      <HouseVilla
+        house={run.house}
+        monster={run.monster}
+        hpRatio={hpRatio}
+        boss={boss}
+        activePet={activePet}
+        activeStage={activeStage}
+        ownedPets={ownedPets}
+        selectedPetId={selectedPetId}
+        lastImpact={lastImpact}
+        petAction={petAction}
+        speechState={speechState}
+        onSelectPet={onSelectPet}
+        onPetInteract={onPetInteract}
+      />
       <div className="monster-status opponent-status">
         <div>
           <strong>
@@ -1518,26 +1663,8 @@ function Arena({ run, ownedPets, selectedPetId, lastImpact, petAction, burst, sp
           <span style={{ width: `${hpRatio * 100}%` }} />
         </div>
       </div>
-      <MonsterFigure
-        monster={run.monster}
-        hpRatio={hpRatio}
-        isHit={lastImpact === 'hit'}
-        growth={(activeStage?.size || 1) * (boss ? 1.22 : 1)}
-        accessory={activePet?.accessory}
-        action={petAction?.monsterId === run.monster.id ? petAction.type : null}
-        onInteract={() => onPetInteract(run.monster.id, 'opponent')}
-        isBoss={boss}
-      />
       <DamagePop pop={damagePop} />
       <CaptureFx fx={captureFx} />
-      <PetSwarm
-        ownedPets={ownedPets}
-        selectedPetId={selectedPetId}
-        petAction={petAction}
-        speechState={speechState}
-        onSelectPet={onSelectPet}
-        onPetInteract={onPetInteract}
-      />
       <RewardBurst burst={burst} />
       {petAction?.food ? (
         <div key={petAction.key} className={`feeding-treat tier-${petAction.food.tier}`}>

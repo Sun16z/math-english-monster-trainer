@@ -3182,6 +3182,93 @@ p {
   height: 21%;
 }
 
+.villa-house-pets {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+}
+
+.house-pet {
+  position: absolute;
+  top: var(--pet-y);
+  left: var(--pet-x);
+  z-index: var(--pet-depth, 10);
+  width: clamp(54px, 20%, 92px);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) translate3d(0, 0, 0) scale(var(--pet-scale, 1));
+  transform-origin: 50% 88%;
+  animation: house-pet-wander var(--pet-walk, 9s) ease-in-out infinite;
+  animation-delay: var(--pet-delay, 0s);
+}
+
+.house-pet::before {
+  position: absolute;
+  right: 12%;
+  bottom: 4%;
+  left: 12%;
+  height: 14%;
+  border-radius: 50%;
+  background: rgba(32, 49, 58, 0.14);
+  content: '';
+  transform: translateY(12px);
+}
+
+.house-pet.selected::after {
+  position: absolute;
+  right: 7%;
+  bottom: -7%;
+  left: 7%;
+  height: 18%;
+  border: 2px solid rgba(246, 201, 77, 0.82);
+  border-radius: 50%;
+  box-shadow: 0 0 14px rgba(246, 201, 77, 0.52);
+  content: '';
+}
+
+.house-pet .monster-figure,
+.house-pet .monster-figure.friend,
+.house-pet .monster-figure.opponent,
+.house-pet .monster-figure.opponent.is-boss {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  z-index: 2;
+  width: 100%;
+  filter: drop-shadow(0 10px 10px rgba(32, 49, 58, 0.18));
+}
+
+.house-pet .monster-figure svg {
+  transform: scale(var(--pet-growth, 1));
+}
+
+.house-pet.is-opponent .monster-figure {
+  animation-duration: 3.7s;
+}
+
+@keyframes house-pet-wander {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translate3d(0, 0, 0) scale(var(--pet-scale, 1));
+  }
+
+  24% {
+    transform: translate(-50%, -50%) translate3d(var(--pet-dx, 14px), var(--pet-dy, -6px), 0) scale(var(--pet-scale, 1));
+  }
+
+  52% {
+    transform: translate(-50%, -50%) translate3d(0, 6px, 0) scale(var(--pet-scale, 1));
+  }
+
+  76% {
+    transform: translate(-50%, -50%) translate3d(var(--pet-dx, 14px), 2px, 0) scale(var(--pet-scale, 1));
+  }
+}
+
 .furniture.sofa {
   bottom: 10%;
   left: 8%;
