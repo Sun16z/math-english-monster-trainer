@@ -1,6 +1,7 @@
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { normalizeHouse } from './gameLogic.js';
 
 function makeColor(value, fallback = '#ffffff') {
   try {
@@ -20,10 +21,10 @@ function SpinningCandy({ colorA, colorB, colorC, boss }) {
   });
 
   return (
-    <group ref={groupRef} position={[0, -0.7, -1.6]} scale={boss ? 1.18 : 1}>
+    <group ref={groupRef} position={[0.2, -0.48, -2.35]} scale={boss ? 0.78 : 0.72}>
       <mesh>
         <sphereGeometry args={[2.45, 48, 24]} />
-        <meshStandardMaterial color={colorA} roughness={0.62} metalness={0.05} />
+        <meshStandardMaterial color={colorA} roughness={0.72} metalness={0.02} transparent opacity={0.34} />
       </mesh>
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[2.48, 0.08, 12, 96]} />
@@ -76,13 +77,13 @@ function Opponent3D({ monster, boss, active }) {
   useFrame((state) => {
     if (!groupRef.current) return;
     const hitPulse = active === 'poke' || active === 'cheer' ? Math.sin(state.clock.elapsedTime * 18) * 0.09 : 0;
-    groupRef.current.position.y = 0.62 + Math.sin(state.clock.elapsedTime * 1.7) * 0.14;
+    groupRef.current.position.y = 0.42 + Math.sin(state.clock.elapsedTime * 1.7) * 0.1;
     groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.9) * 0.18;
-    groupRef.current.scale.setScalar((boss ? 1.2 : 1) + hitPulse);
+    groupRef.current.scale.setScalar((boss ? 0.72 : 0.62) + hitPulse);
   });
 
   return (
-    <group ref={groupRef} position={[1.55, 0.65, 0.3]}>
+    <group ref={groupRef} position={[2.05, 0.46, 0.52]}>
       <mesh>
         <sphereGeometry args={[0.58, 40, 24]} />
         <meshStandardMaterial color={colorA} roughness={0.5} metalness={0.04} emissive={colorA} emissiveIntensity={boss ? 0.2 : 0.06} />
@@ -113,12 +114,12 @@ function PetToken3D({ entry, index, selected, active }) {
   const colorA = makeColor(base?.colorA, '#7ecbff');
   const colorB = makeColor(base?.colorB, '#ffffff');
   const colorC = makeColor(base?.colorC, '#ffd76d');
-  const scale = selected ? 0.82 : 0.62;
+  const scale = selected ? 0.58 : 0.42;
   const position = useMemo(() => {
     const count = 6;
     const angle = Math.PI * 0.88 + (index / Math.max(1, count - 1)) * Math.PI * 0.78;
-    const radius = 2.15 + (index % 2) * 0.18;
-    return [Math.cos(angle) * radius - 0.2, -0.12 + (index % 2) * 0.08, Math.sin(angle) * 0.72 + 0.66];
+    const radius = 2.05 + (index % 2) * 0.16;
+    return [Math.cos(angle) * radius - 0.34, -0.3 + (index % 2) * 0.07, Math.sin(angle) * 0.7 + 0.82];
   }, [index]);
 
   useFrame((state) => {
@@ -162,7 +163,77 @@ function PetToken3D({ entry, index, selected, active }) {
   );
 }
 
-function CandyWorld({ monster, ownedPets, selectedPetId, stageIndex, boss, petAction }) {
+function Villa3D({ house }) {
+  const groupRef = useRef(null);
+  const safeHouse = normalizeHouse(house);
+  const built = new Set(safeHouse.built);
+  const has = (id) => built.has(id);
+
+  useFrame((state) => {
+    if (!groupRef.current) return;
+    groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.45) * 0.08;
+    groupRef.current.position.y = -0.25 + Math.sin(state.clock.elapsedTime * 0.9) * 0.025;
+  });
+
+  return (
+    <group ref={groupRef} position={[-0.2, -0.2, 0.32]} scale={1.08}>
+      <mesh position={[0, -0.42, 0]}>
+        <boxGeometry args={[2.7, 0.18, 1.45]} />
+        <meshStandardMaterial color="#b6f0cf" roughness={0.72} />
+      </mesh>
+      <mesh position={[0, 0.05, 0]}>
+        <boxGeometry args={[2.05, 1.05, 1.2]} />
+        <meshStandardMaterial color={has('foundation') ? '#fff5df' : '#d8e8df'} roughness={0.58} />
+      </mesh>
+      {has('secondFloor') ? (
+        <mesh position={[0, 0.78, 0]}>
+          <boxGeometry args={[1.75, 0.78, 1.05]} />
+          <meshStandardMaterial color="#ffe8f2" roughness={0.55} />
+        </mesh>
+      ) : null}
+      {has('roof') ? (
+        <mesh position={[0, 1.16, 0]} rotation={[0, 0, Math.PI / 4]}>
+          <boxGeometry args={[1.65, 1.65, 1.28]} />
+          <meshStandardMaterial color="#ff84b7" roughness={0.44} />
+        </mesh>
+      ) : null}
+      {has('frontDoor') ? (
+        <mesh position={[0, -0.21, 0.64]}>
+          <boxGeometry args={[0.38, 0.62, 0.08]} />
+          <meshStandardMaterial color="#8f78ff" roughness={0.4} />
+        </mesh>
+      ) : null}
+      {['windowLeft', 'windowRight'].map((id, index) => (
+        has(id) ? (
+          <mesh key={id} position={[index === 0 ? -0.62 : 0.62, 0.1, 0.66]}>
+            <boxGeometry args={[0.34, 0.34, 0.07]} />
+            <meshStandardMaterial color="#7ecbff" roughness={0.2} emissive="#7ecbff" emissiveIntensity={0.1} />
+          </mesh>
+        ) : null
+      ))}
+      {has('balcony') ? (
+        <mesh position={[0, 0.56, 0.72]}>
+          <boxGeometry args={[1.0, 0.14, 0.2]} />
+          <meshStandardMaterial color="#ffffff" roughness={0.34} />
+        </mesh>
+      ) : null}
+      {has('chimney') ? (
+        <mesh position={[0.67, 1.36, -0.12]}>
+          <boxGeometry args={[0.22, 0.56, 0.24]} />
+          <meshStandardMaterial color="#b98a5e" roughness={0.56} />
+        </mesh>
+      ) : null}
+      {has('pool') ? (
+        <mesh position={[1.55, -0.34, 0.36]} rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[0.46, 32]} />
+          <meshStandardMaterial color="#69c7d9" roughness={0.22} emissive="#69c7d9" emissiveIntensity={0.08} />
+        </mesh>
+      ) : null}
+    </group>
+  );
+}
+
+function CandyWorld({ monster, ownedPets, selectedPetId, stageIndex, boss, house, petAction }) {
   const colorA = makeColor(monster?.colorA, '#69c7d9');
   const colorB = makeColor(monster?.colorB, '#ffffff');
   const colorC = makeColor(monster?.colorC, '#f6c94d');
@@ -174,6 +245,7 @@ function CandyWorld({ monster, ownedPets, selectedPetId, stageIndex, boss, petAc
       <directionalLight position={[4, 6, 5]} intensity={1.22} />
       <pointLight position={[-3, 2.4, 2.4]} intensity={1.2} color={colorC} />
       <SpinningCandy colorA={colorA} colorB={colorB} colorC={colorC} boss={boss} />
+      <Villa3D house={house} />
       {Array.from({ length: 8 }, (_, index) => (
         <FloatingTreat key={index} index={index} color={treatColor} />
       ))}
@@ -201,6 +273,7 @@ export default function PetWorld3D({
   selectedPetId = null,
   stageIndex = 0,
   boss = false,
+  house = {},
   petAction = null,
 }) {
   return (
@@ -216,6 +289,7 @@ export default function PetWorld3D({
           selectedPetId={selectedPetId}
           stageIndex={stageIndex}
           boss={boss}
+          house={house}
           petAction={petAction}
         />
       </Canvas>

@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   MONSTERS,
+  HOUSE_ITEMS,
   PET_ACCESSORIES,
   PET_FOODS,
   PET_SKINS,
   STAGES,
   addFoodToBag,
+  addHouseProgress,
   addSkinToPet,
   applySkinToMonster,
   calculateDamage,
@@ -33,6 +35,7 @@ import {
   makeRng,
   maybeDropEgg,
   normalizeFoodBag,
+  normalizeHouse,
   normalizeMapProgress,
   normalizePetDex,
   warmEgg,
@@ -296,6 +299,28 @@ test('food rewards scale with score and feeding grows pets', () => {
 
   const nextBag = addFoodToBag(bag, highReward.id, -1);
   assert.equal(nextBag[highReward.id], 1);
+});
+
+test('house progress adds permanent villa items before renovation upgrades', () => {
+  let result = addHouseProgress({});
+  assert.equal(result.reward.id, HOUSE_ITEMS[0].id);
+  assert.deepEqual(result.house.built, [HOUSE_ITEMS[0].id]);
+
+  for (let index = 1; index < HOUSE_ITEMS.length; index += 1) {
+    result = addHouseProgress(result.house);
+    assert.equal(result.reward.id, HOUSE_ITEMS[index].id);
+  }
+
+  assert.equal(result.house.complete, true);
+  assert.equal(result.house.built.length, HOUSE_ITEMS.length);
+  const renovated = addHouseProgress(result.house);
+  assert.equal(renovated.house.built.length, HOUSE_ITEMS.length);
+  assert.equal(renovated.house.renovation, 1);
+  assert.equal(renovated.reward.kind, 'upgrade');
+
+  const normalized = normalizeHouse({ built: ['frontDoor', 'not-real', 'frontDoor'], renovation: '2' });
+  assert.deepEqual(normalized.built, ['frontDoor']);
+  assert.equal(normalized.renovation, 2);
 });
 
 test('damage scales with streak and level', () => {

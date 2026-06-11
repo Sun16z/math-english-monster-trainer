@@ -3,12 +3,14 @@ import {
   CURRICULUM_OUTLINE,
   DIFFICULTIES,
   GRADES,
+  HOUSE_ITEMS,
   MODES,
   MONSTERS,
   PET_FOODS,
   PET_SKINS,
   STAGES,
   addFoodToBag,
+  addHouseProgress,
   addSkinToPet,
   applySkinToMonster,
   calculateDamage,
@@ -28,6 +30,7 @@ import {
   isStageUnlocked,
   maybeDropEgg,
   normalizeFoodBag,
+  normalizeHouse,
   normalizeMapProgress,
   normalizePetDex,
   summarizeRun,
@@ -40,6 +43,7 @@ const ACTIVE_ACCOUNT_KEY = 'math-english-monster-trainer:active-account:v1';
 const PetWorld3D = lazy(() => import('./PetWorld3D.jsx'));
 
 const PET_SKINS_BY_ID = Object.fromEntries(PET_SKINS.map((skin) => [skin.id, skin]));
+const HOUSE_ITEMS_BY_ID = Object.fromEntries(HOUSE_ITEMS.map((item) => [item.id, item]));
 
 const SOUND_LIBRARY = {
   select: {
@@ -119,6 +123,16 @@ const SOUND_LIBRARY = {
       [349.23, 0, 0.12],
       [523.25, 0.08, 0.14],
       [698.46, 0.17, 0.18],
+    ],
+  },
+  build: {
+    type: 'triangle',
+    gain: 0.42,
+    notes: [
+      [392, 0, 0.08],
+      [523.25, 0.07, 0.1],
+      [659.25, 0.16, 0.12],
+      [783.99, 0.25, 0.16],
     ],
   },
   level: {
@@ -534,6 +548,7 @@ function makeEmptyProfile(account) {
     collection: [],
     petDex: {},
     foodBag: {},
+    house: normalizeHouse(),
     mapProgress: {},
     sessions: 0,
     updatedAt: makeTimestamp(),
@@ -549,6 +564,7 @@ function normalizeProfile(parsed, account) {
     collection,
     petDex: normalizePetDex(parsed?.petDex, collection),
     foodBag: normalizeFoodBag(parsed?.foodBag),
+    house: normalizeHouse(parsed?.house),
     mapProgress: normalizeMapProgress(parsed?.mapProgress),
     sessions: Number(parsed?.sessions) || 0,
     updatedAt: parsed?.updatedAt || empty.updatedAt,
@@ -606,6 +622,7 @@ function createProfileRun(profile, options = {}) {
     savedCollection: profile.collection,
     savedPetDex: profile.petDex,
     savedFoodBag: profile.foodBag,
+    savedHouse: profile.house,
     phase: options.phase || 'map',
     stageIndex: options.stageIndex || 0,
   });
@@ -1182,6 +1199,85 @@ function EggCard({ egg }) {
   );
 }
 
+function HouseProgressCard({ house }) {
+  const safeHouse = normalizeHouse(house);
+  const nextItem = HOUSE_ITEMS.find((item) => !safeHouse.built.includes(item.id));
+  const progress = Math.min(100, (safeHouse.builtCount / safeHouse.total) * 100);
+  return (
+    <div className="house-progress-card" aria-label="豪華別墅進度">
+      <div className="mission-head">
+        <span>豪華別墅</span>
+        <strong>{safeHouse.complete ? `升級 ${safeHouse.renovation}` : `${safeHouse.builtCount}/${safeHouse.total}`}</strong>
+      </div>
+      <div className="meter house-meter" aria-label="房子建造進度">
+        <span style={{ width: `${progress}%` }} />
+      </div>
+      <p>{nextItem ? `下一題答對可蓋：${nextItem.label}` : '房子已完成，答對會繼續豪宅升級。'}</p>
+    </div>
+  );
+}
+
+function HouseVilla({ house }) {
+  const safeHouse = normalizeHouse(house);
+  const built = new Set(safeHouse.built);
+  const has = (id) => built.has(id);
+  const newestId = safeHouse.built[safeHouse.built.length - 1] || null;
+
+  return (
+    <div className="villa-stage" aria-label="豪華別墅">
+      <div className="villa-progress-badge">
+        <span>豪華別墅</span>
+        <strong>{safeHouse.complete ? `完成 +${safeHouse.renovation}` : `${safeHouse.builtCount}/${safeHouse.total}`}</strong>
+      </div>
+      <div className="villa-lot">
+        {has('garden') ? <span className="villa-outdoor garden" /> : null}
+        {has('pool') ? <span className="villa-outdoor pool" /> : null}
+        {has('fountain') ? <span className="villa-outdoor fountain" /> : null}
+        {has('garage') ? <span className="villa-outdoor garage" /> : null}
+        <div className={`villa-house ${has('foundation') ? 'has-foundation' : ''}`}>
+          <span className={`villa-piece base ${newestId === 'foundation' ? 'new' : ''}`} />
+          {has('secondFloor') ? <span className={`villa-piece floor second ${newestId === 'secondFloor' ? 'new' : ''}`} /> : null}
+          {has('roof') ? <span className={`villa-piece roof ${newestId === 'roof' ? 'new' : ''}`} /> : null}
+          {has('solarRoof') ? <span className={`villa-piece solar-roof ${newestId === 'solarRoof' ? 'new' : ''}`} /> : null}
+          {has('chimney') ? <span className={`villa-piece chimney ${newestId === 'chimney' ? 'new' : ''}`} /> : null}
+          {has('partyLights') ? <span className={`villa-piece party-lights ${newestId === 'partyLights' ? 'new' : ''}`} /> : null}
+          {has('frontDoor') ? <span className={`villa-piece door ${newestId === 'frontDoor' ? 'new' : ''}`} /> : null}
+          {has('porchLight') ? <span className={`villa-piece porch-light ${newestId === 'porchLight' ? 'new' : ''}`} /> : null}
+          {has('windowLeft') ? <span className={`villa-piece window left ${newestId === 'windowLeft' ? 'new' : ''}`} /> : null}
+          {has('windowRight') ? <span className={`villa-piece window right ${newestId === 'windowRight' ? 'new' : ''}`} /> : null}
+          {has('balcony') ? <span className={`villa-piece balcony ${newestId === 'balcony' ? 'new' : ''}`} /> : null}
+          <span className="villa-room living">
+            {has('sofa') ? <i className={`furniture sofa ${newestId === 'sofa' ? 'new' : ''}`} /> : null}
+            {has('teaTable') ? <i className={`furniture tea-table ${newestId === 'teaTable' ? 'new' : ''}`} /> : null}
+            {has('bookshelf') ? <i className={`furniture bookshelf ${newestId === 'bookshelf' ? 'new' : ''}`} /> : null}
+            {has('grandPiano') ? <i className={`furniture piano ${newestId === 'grandPiano' ? 'new' : ''}`} /> : null}
+          </span>
+          <span className="villa-room bedroom">
+            {has('bed') ? <i className={`furniture bed ${newestId === 'bed' ? 'new' : ''}`} /> : null}
+            {has('wardrobe') ? <i className={`furniture wardrobe ${newestId === 'wardrobe' ? 'new' : ''}`} /> : null}
+            {has('studyDesk') ? <i className={`furniture desk ${newestId === 'studyDesk' ? 'new' : ''}`} /> : null}
+          </span>
+          <span className="villa-room kitchen-room">
+            {has('kitchen') ? <i className={`furniture kitchen ${newestId === 'kitchen' ? 'new' : ''}`} /> : null}
+            {has('fridge') ? <i className={`furniture fridge ${newestId === 'fridge' ? 'new' : ''}`} /> : null}
+            {has('toyShelf') ? <i className={`furniture toy-shelf ${newestId === 'toyShelf' ? 'new' : ''}`} /> : null}
+          </span>
+          <span className="villa-room bathroom">
+            {has('toilet') ? <i className={`furniture toilet ${newestId === 'toilet' ? 'new' : ''}`} /> : null}
+            {has('sink') ? <i className={`furniture sink ${newestId === 'sink' ? 'new' : ''}`} /> : null}
+            {has('bathtub') ? <i className={`furniture bathtub ${newestId === 'bathtub' ? 'new' : ''}`} /> : null}
+          </span>
+        </div>
+      </div>
+      <div className="villa-built-list" aria-label="已完成建材">
+        {safeHouse.built.slice(-4).map((itemId) => (
+          <span key={itemId}>{HOUSE_ITEMS_BY_ID[itemId]?.label || itemId}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ProgressRail({ run, profile, ownedPets, selectedPetId, onSelectPet, onFeedFood }) {
   const summary = summarizeRun(run);
   const missionProgress = Math.min(5, run.correctCount);
@@ -1250,6 +1346,7 @@ function ProgressRail({ run, profile, ownedPets, selectedPetId, onSelectPet, onF
           <strong>{run.reviewQueue?.length || 0}</strong>
         </div>
       </div>
+      <HouseProgressCard house={run.house} />
       <EggCard egg={run.currentEgg} />
       <FoodPack foodBag={run.foodBag} selectedPet={selectedPet} onFeedFood={onFeedFood} />
       <PetDexPanel ownedPets={ownedPets} selectedPetId={selectedPetId} onSelectPet={onSelectPet} />
@@ -1383,6 +1480,7 @@ function Arena({ run, ownedPets, selectedPetId, lastImpact, petAction, burst, sp
           selectedPetId={selectedPetId}
           stageIndex={run.stageIndex}
           boss={boss}
+          house={run.house}
           petAction={petAction}
         />
       </Suspense>
@@ -1407,6 +1505,7 @@ function Arena({ run, ownedPets, selectedPetId, lastImpact, petAction, burst, sp
           <span className="crystal c3" />
         </div>
       </div>
+      <HouseVilla house={run.house} />
       <div className="monster-status opponent-status">
         <div>
           <strong>
@@ -2031,6 +2130,7 @@ export default function App() {
       collection,
       petDex: normalizePetDex({ ...profile.petDex, ...nextRun.petDex }, collection),
       foodBag: normalizeFoodBag(nextRun.foodBag),
+      house: normalizeHouse(nextRun.house || profile.house),
       mapProgress: normalizeMapProgress(mapProgress),
       sessions: profile.sessions + (nextRun.phase === 'playing' ? 0 : 1),
     };
@@ -2112,6 +2212,7 @@ export default function App() {
       savedCollection: profile.collection,
       savedPetDex: profile.petDex,
       savedFoodBag: profile.foodBag,
+      savedHouse: profile.house,
       phase,
       stageIndex,
     }));
@@ -2201,6 +2302,7 @@ export default function App() {
       retrying: run.retrying,
     });
     const nextFoodBag = addFoodToBag(run.foodBag, rewardFood.id, 1);
+    const houseResult = addHouseProgress(run.house);
 
     let nextEgg = run.currentEgg ? warmEgg(run.currentEgg, 1) : null;
     let hatchResult = null;
@@ -2230,6 +2332,7 @@ export default function App() {
     const growthText = activePetStage
       ? ` 寵物成長：${activePetStage.title} Lv.${activePetStage.level}，裝飾：${activePet.accessory.label}。`
       : '';
+    const houseText = ` 建造：${houseResult.reward.label}。`;
     const foodText = ` 得到點心：${rewardFood.label}。`;
     const eggText = hatchResult
       ? ` 蛋孵化了：${hatchResult.skin.label}色夥伴！`
@@ -2240,6 +2343,7 @@ export default function App() {
     showDamagePop({ value: damage, crit: nextStreak >= 3 });
     if (nextHp === 0) showCaptureFx();
     void playSound(nextHp === 0 ? 'catch' : nextStreak > 0 && nextStreak % 3 === 0 ? 'combo' : 'good');
+    window.setTimeout(() => void playSound('build'), 120);
     if (rareFood) window.setTimeout(() => void playSound('rare'), 210);
     if (leveledUp) window.setTimeout(() => void playSound('level'), 360);
     if (hatchResult) window.setTimeout(() => void playSound('rare'), 520);
@@ -2276,7 +2380,7 @@ export default function App() {
       }
     }
     showBurst({
-      type: nextHp === 0 ? 'catch' : leveledUp ? 'level' : rareFood ? 'rare' : 'correct',
+      type: nextHp === 0 ? 'catch' : leveledUp ? 'level' : rareFood ? 'rare' : 'build',
       label: nextHp === 0
         ? '收服成功'
         : leveledUp
@@ -2284,8 +2388,8 @@ export default function App() {
           : rareFood
             ? '高級點心'
             : nextStreak >= 3
-              ? `連擊 x${nextStreak}`
-              : '答對',
+              ? `蓋好 ${houseResult.reward.label}`
+              : houseResult.reward.label,
       food: rareFood ? rewardFood : null,
     }, rareFood || nextHp === 0 || leveledUp ? 1180 : 900);
     if (nextHp === 0) {
@@ -2313,6 +2417,7 @@ export default function App() {
       collection: collectionAfterHatch,
       petDex: petDexWithSkins,
       foodBag: nextFoodBag,
+      house: houseResult.house,
       currentEgg: nextEgg,
       phase: run.phase,
       feedback: {
@@ -2324,9 +2429,10 @@ export default function App() {
             : run.wrongChoices.length > 0
               ? `訂正成功 +${damage}`
               : `命中 +${damage}`,
-        detail: `${run.question.explanation}${growthText}${foodText}${eggText}`,
+        detail: `${run.question.explanation}${houseText}${growthText}${foodText}${eggText}`,
       },
       log: [
+        `建造：${houseResult.reward.label}`,
         hatchResult
           ? `孵化：${hatchResult.skin.label}色${MONSTERS.find((item) => item.id === hatchResult.monsterId)?.name || '夥伴'}`
           : nextHp === 0

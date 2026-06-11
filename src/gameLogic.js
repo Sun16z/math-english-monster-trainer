@@ -146,11 +146,88 @@ export const PET_SKINS = [
   { id: 'golden', label: '黃金', rarity: '傳說', colorA: '#b08a2e', colorB: '#fff8e1', colorC: '#ffd96b' },
 ];
 
+export const HOUSE_ITEMS = [
+  { id: 'foundation', label: '糖果地基', kind: 'structure' },
+  { id: 'frontDoor', label: '粉紅大門', kind: 'structure' },
+  { id: 'windowLeft', label: '左邊窗戶', kind: 'structure' },
+  { id: 'windowRight', label: '右邊窗戶', kind: 'structure' },
+  { id: 'roof', label: '莓果屋頂', kind: 'structure' },
+  { id: 'chimney', label: '星星煙囪', kind: 'structure' },
+  { id: 'secondFloor', label: '二樓房間', kind: 'structure' },
+  { id: 'balcony', label: '雲朵陽台', kind: 'structure' },
+  { id: 'porchLight', label: '門口燈', kind: 'decor' },
+  { id: 'garden', label: '小花園', kind: 'outdoor' },
+  { id: 'sofa', label: '客廳沙發', kind: 'furniture' },
+  { id: 'teaTable', label: '點心桌', kind: 'furniture' },
+  { id: 'bookshelf', label: '故事書櫃', kind: 'furniture' },
+  { id: 'studyDesk', label: '讀書桌', kind: 'furniture' },
+  { id: 'bed', label: '公主小床', kind: 'furniture' },
+  { id: 'wardrobe', label: '裝飾衣櫃', kind: 'furniture' },
+  { id: 'kitchen', label: '小廚房', kind: 'furniture' },
+  { id: 'fridge', label: '點心冰箱', kind: 'furniture' },
+  { id: 'toilet', label: '可愛廁所', kind: 'bathroom' },
+  { id: 'sink', label: '洗手台', kind: 'bathroom' },
+  { id: 'bathtub', label: '泡泡浴缸', kind: 'bathroom' },
+  { id: 'toyShelf', label: '寵物玩具架', kind: 'decor' },
+  { id: 'garage', label: '糖果車庫', kind: 'outdoor' },
+  { id: 'pool', label: '星星泳池', kind: 'outdoor' },
+  { id: 'fountain', label: '月光噴泉', kind: 'outdoor' },
+  { id: 'grandPiano', label: '音樂鋼琴', kind: 'furniture' },
+  { id: 'solarRoof', label: '彩虹屋頂板', kind: 'decor' },
+  { id: 'partyLights', label: '派對燈串', kind: 'decor' },
+];
+
 const EGG_SKIN_WEIGHTS = {
   normalEgg: { mint: 50, sakura: 33, star: 12, golden: 5 },
   shinyEgg: { mint: 22, sakura: 36, star: 28, golden: 14 },
   rainbowEgg: { mint: 8, sakura: 22, star: 35, golden: 35 },
 };
+
+export function normalizeHouse(rawHouse = {}) {
+  const validIds = new Set(HOUSE_ITEMS.map((item) => item.id));
+  const built = [...new Set((rawHouse?.built || []).filter((itemId) => validIds.has(itemId)))];
+  const renovation = Math.max(0, Math.floor(Number(rawHouse?.renovation) || 0));
+  return {
+    built,
+    renovation,
+    builtCount: built.length,
+    total: HOUSE_ITEMS.length,
+    complete: built.length >= HOUSE_ITEMS.length,
+  };
+}
+
+export function getNextHouseItem(rawHouse = {}) {
+  const house = normalizeHouse(rawHouse);
+  return HOUSE_ITEMS.find((item) => !house.built.includes(item.id)) || null;
+}
+
+export function addHouseProgress(rawHouse = {}) {
+  const house = normalizeHouse(rawHouse);
+  const nextItem = getNextHouseItem(house);
+  if (nextItem) {
+    const nextHouse = normalizeHouse({
+      ...house,
+      built: [...house.built, nextItem.id],
+    });
+    return {
+      house: nextHouse,
+      reward: nextItem,
+    };
+  }
+
+  const renovation = house.renovation + 1;
+  return {
+    house: normalizeHouse({
+      ...house,
+      renovation,
+    }),
+    reward: {
+      id: `renovation-${renovation}`,
+      label: `豪宅升級 ${renovation}`,
+      kind: 'upgrade',
+    },
+  };
+}
 
 export function getEggById(eggId) {
   return PET_EGGS.find((egg) => egg.id === eggId) || PET_EGGS[0];
@@ -2276,6 +2353,7 @@ export function createInitialRun({
   savedCollection = [],
   savedPetDex = {},
   savedFoodBag = {},
+  savedHouse = {},
   phase = 'playing',
   stageIndex = 0,
 } = {}) {
@@ -2308,6 +2386,7 @@ export function createInitialRun({
     collection,
     petDex: normalizePetDex(savedPetDex, collection),
     foodBag: normalizeFoodBag(savedFoodBag),
+    house: normalizeHouse(savedHouse),
     currentEgg: null,
     monster: firstMonster,
     monsterMaxHp,
