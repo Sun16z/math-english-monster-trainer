@@ -2929,7 +2929,7 @@ p {
 }
 
 .house-meter span {
-  background: linear-gradient(90deg, #ff84b7, #ffd76d, #7ecbff);
+  background: linear-gradient(90deg, #79b84a, #c08a47, #69c7d9, #d36d55);
 }
 
 .villa-stage {
@@ -2952,11 +2952,15 @@ p {
   align-items: center;
   gap: 8px;
   padding: 7px 11px;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.84);
-  box-shadow: 0 10px 24px rgba(32, 49, 58, 0.12);
-  backdrop-filter: blur(10px);
+  border: 2px solid rgba(82, 66, 43, 0.34);
+  border-radius: 3px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.86), rgba(240, 226, 192, 0.88)),
+    #f5e0ad;
+  box-shadow:
+    5px 5px 0 rgba(82, 66, 43, 0.14),
+    inset 0 -4px 0 rgba(82, 66, 43, 0.1);
+  backdrop-filter: none;
 }
 
 .villa-progress-badge span {
@@ -2983,10 +2987,13 @@ p {
   bottom: 0;
   left: 2%;
   height: 28%;
-  border-radius: 50%;
+  border: 3px solid rgba(82, 114, 61, 0.2);
+  border-radius: 2px;
   background:
-    radial-gradient(circle, rgba(255, 255, 255, 0.66), transparent 64%),
-    linear-gradient(90deg, rgba(149, 201, 79, 0.26), rgba(246, 201, 77, 0.2), rgba(105, 199, 217, 0.2));
+    linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(82, 114, 61, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(121, 184, 74, 0.46), rgba(196, 138, 71, 0.24), rgba(105, 199, 217, 0.22));
+  background-size: 22px 22px, 22px 22px, auto;
   content: '';
 }
 
@@ -2997,7 +3004,10 @@ p {
   width: min(72%, 390px);
   height: 72%;
   transform: translateX(-50%);
-  filter: drop-shadow(0 20px 22px rgba(32, 49, 58, 0.2));
+  image-rendering: pixelated;
+  filter:
+    drop-shadow(10px 12px 0 rgba(82, 66, 43, 0.14))
+    drop-shadow(0 18px 18px rgba(32, 49, 58, 0.16));
 }
 
 .villa-piece,
@@ -3015,8 +3025,9 @@ p {
 }
 
 @keyframes villa-piece-pop {
-  0% { opacity: 0; transform: translateY(-18px) scale(0.62); }
-  64% { opacity: 1; transform: translateY(3px) scale(1.08); }
+  0% { opacity: 0; transform: translateY(-34px) scale(0.84); filter: saturate(1.3); }
+  54% { opacity: 1; transform: translateY(4px) scale(1.02); }
+  68% { transform: translateY(-2px) scale(1); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
@@ -3025,12 +3036,16 @@ p {
   bottom: 0;
   left: 8%;
   height: 54%;
-  border: 4px solid rgba(142, 82, 116, 0.22);
-  border-radius: 14px 14px 8px 8px;
+  border: 5px solid #8c6a3c;
+  border-radius: 2px;
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.58) 1px, transparent 1px),
-    linear-gradient(180deg, #fff6df, #ffe6ed);
-  background-size: 32px 100%, auto;
+    linear-gradient(90deg, rgba(255, 255, 255, 0.24) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(82, 66, 43, 0.18) 1px, transparent 1px),
+    linear-gradient(180deg, #f4d694 0 46%, #c99553 46% 100%);
+  background-size: 24px 24px, 24px 24px, auto;
+  box-shadow:
+    inset -8px -8px 0 rgba(82, 66, 43, 0.16),
+    inset 7px 7px 0 rgba(255, 255, 255, 0.28);
 }
 
 .villa-house:not(.has-foundation) .villa-piece.base {
@@ -3047,9 +3062,13 @@ p {
   bottom: 51%;
   left: 16%;
   height: 34%;
-  border: 4px solid rgba(142, 82, 116, 0.2);
-  border-radius: 12px 12px 6px 6px;
-  background: linear-gradient(180deg, #fff8fb, #ffddec);
+  border: 5px solid #8c6a3c;
+  border-radius: 2px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.22) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(82, 66, 43, 0.16) 1px, transparent 1px),
+    linear-gradient(180deg, #e6c37d, #c58f50);
+  background-size: 22px 22px, 22px 22px, auto;
 }
 
 .villa-piece.roof {
@@ -3057,8 +3076,13 @@ p {
   bottom: 82%;
   left: 2%;
   height: 30%;
-  clip-path: polygon(50% 0, 100% 82%, 88% 100%, 12% 100%, 0 82%);
-  background: linear-gradient(135deg, #ff84b7, #8f78ff);
+  clip-path: polygon(48% 0, 62% 0, 62% 16%, 76% 16%, 76% 32%, 90% 32%, 90% 48%, 100% 48%, 100% 78%, 88% 100%, 12% 100%, 0 78%, 0 48%, 10% 48%, 10% 32%, 24% 32%, 24% 16%, 38% 16%, 38% 0);
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(82, 66, 43, 0.2) 1px, transparent 1px),
+    linear-gradient(135deg, #d36d55, #9f4a3e);
+  background-size: 20px 20px, 20px 20px, auto;
+  box-shadow: inset -8px -8px 0 rgba(82, 66, 43, 0.22);
 }
 
 .villa-piece.solar-roof {
@@ -3066,7 +3090,8 @@ p {
   right: 29%;
   width: 24%;
   height: 10%;
-  border-radius: 8px;
+  border: 2px solid #416d7a;
+  border-radius: 1px;
   background: repeating-linear-gradient(90deg, #7ecbff 0 8px, #ffd76d 8px 14px);
   transform: rotate(8deg);
 }
@@ -3076,8 +3101,12 @@ p {
   right: 22%;
   width: 10%;
   height: 26%;
-  border-radius: 7px 7px 2px 2px;
-  background: linear-gradient(180deg, #b98a5e, #8f6748);
+  border: 3px solid #6b5645;
+  border-radius: 1px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+    linear-gradient(180deg, #9b8a78, #6b5c4d);
+  background-size: 11px 100%, auto;
 }
 
 .villa-piece.party-lights {
@@ -3085,8 +3114,8 @@ p {
   bottom: 77%;
   left: 16%;
   height: 5%;
-  border-radius: 999px;
-  background: repeating-linear-gradient(90deg, #ffd76d 0 9px, #ff84b7 9px 18px, #7ecbff 18px 27px);
+  border-radius: 1px;
+  background: repeating-linear-gradient(90deg, #ffd76d 0 9px, #d36d55 9px 18px, #69c7d9 18px 27px);
   box-shadow: 0 0 16px rgba(255, 215, 109, 0.55);
 }
 
@@ -3095,8 +3124,12 @@ p {
   left: 44%;
   width: 13%;
   height: 31%;
-  border-radius: 12px 12px 0 0;
-  background: linear-gradient(180deg, #8f78ff, #584a9e);
+  border: 4px solid #5d3d24;
+  border-radius: 1px 1px 0 0;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+    linear-gradient(180deg, #a86d38, #6b421f);
+  background-size: 10px 100%, auto;
 }
 
 .villa-piece.door::after {
@@ -3105,7 +3138,7 @@ p {
   right: 12%;
   width: 7px;
   height: 7px;
-  border-radius: 50%;
+  border-radius: 1px;
   background: #ffd76d;
   content: '';
 }
@@ -3115,7 +3148,7 @@ p {
   left: 50%;
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  border-radius: 1px;
   background: #ffd76d;
   box-shadow: 0 0 16px #ffd76d;
 }
@@ -3124,13 +3157,13 @@ p {
   bottom: 25%;
   width: 15%;
   height: 18%;
-  border: 4px solid #ffffff;
-  border-radius: 10px;
+  border: 4px solid #f4efe4;
+  border-radius: 1px;
   background:
-    linear-gradient(90deg, transparent 45%, rgba(255, 255, 255, 0.9) 45% 55%, transparent 55%),
-    linear-gradient(180deg, transparent 45%, rgba(255, 255, 255, 0.9) 45% 55%, transparent 55%),
-    linear-gradient(135deg, #7ecbff, #f7feff);
-  box-shadow: 0 5px 12px rgba(32, 49, 58, 0.1);
+    linear-gradient(90deg, transparent 45%, rgba(255, 255, 255, 0.88) 45% 55%, transparent 55%),
+    linear-gradient(180deg, transparent 45%, rgba(255, 255, 255, 0.88) 45% 55%, transparent 55%),
+    linear-gradient(135deg, #69c7d9, #e8fbff);
+  box-shadow: inset -4px -4px 0 rgba(33, 91, 105, 0.22), 0 5px 0 rgba(32, 49, 58, 0.08);
 }
 
 .villa-piece.window.left { left: 22%; }
@@ -3141,17 +3174,21 @@ p {
   left: 34%;
   width: 32%;
   height: 10%;
-  border: 4px solid #ffffff;
+  border: 4px solid #f4efe4;
   border-top: 0;
-  border-radius: 0 0 12px 12px;
+  border-radius: 1px;
   background: rgba(126, 203, 255, 0.3);
 }
 
 .villa-room {
   overflow: hidden;
-  border: 2px solid rgba(142, 82, 116, 0.1);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.24);
+  border: 3px solid rgba(101, 76, 41, 0.18);
+  border-radius: 2px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(82, 66, 43, 0.1) 1px, transparent 1px),
+    rgba(255, 248, 220, 0.34);
+  background-size: 14px 14px, 14px 14px, auto;
 }
 
 .villa-room.living {
@@ -3274,8 +3311,12 @@ p {
   left: 8%;
   width: 48%;
   height: 24%;
-  border-radius: 12px 12px 5px 5px;
-  background: #ff84b7;
+  border: 2px solid #8f3e55;
+  border-radius: 1px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+    linear-gradient(180deg, #d66d8a, #9f465d);
+  background-size: 9px 100%, auto;
 }
 
 .furniture.tea-table {
@@ -3283,8 +3324,9 @@ p {
   bottom: 9%;
   width: 28%;
   height: 15%;
-  border-radius: 999px;
-  background: #b98a5e;
+  border: 2px solid #6b421f;
+  border-radius: 1px;
+  background: #a86d38;
 }
 
 .furniture.bookshelf {
@@ -3292,8 +3334,11 @@ p {
   right: 8%;
   width: 18%;
   height: 58%;
-  border-radius: 3px;
-  background: repeating-linear-gradient(180deg, #8f78ff 0 8px, #ffd76d 8px 13px, #7ecbff 13px 18px);
+  border: 2px solid #5d3d24;
+  border-radius: 1px;
+  background:
+    repeating-linear-gradient(180deg, #8f78ff 0 8px, #ffd76d 8px 13px, #69c7d9 13px 18px),
+    #6b421f;
 }
 
 .furniture.piano {
@@ -3301,8 +3346,11 @@ p {
   left: 7%;
   width: 34%;
   height: 24%;
-  border-radius: 8px 8px 4px 4px;
-  background: #2b2535;
+  border: 2px solid #15121b;
+  border-radius: 1px;
+  background:
+    linear-gradient(90deg, #f4efe4 0 8%, transparent 8% 16%, #f4efe4 16% 24%, transparent 24% 32%, #f4efe4 32% 40%, transparent 40%),
+    #2b2535;
 }
 
 .furniture.bed {
@@ -3310,8 +3358,11 @@ p {
   bottom: 8%;
   width: 55%;
   height: 28%;
-  border-radius: 8px;
-  background: linear-gradient(90deg, #ffffff 0 22%, #b79bff 22%);
+  border: 2px solid #7159ad;
+  border-radius: 1px;
+  background:
+    linear-gradient(90deg, #f4efe4 0 22%, #8f78ff 22%),
+    #8f78ff;
 }
 
 .furniture.wardrobe {
@@ -3319,8 +3370,12 @@ p {
   left: 8%;
   width: 24%;
   height: 58%;
-  border-radius: 5px;
-  background: #b98a5e;
+  border: 2px solid #5d3d24;
+  border-radius: 1px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+    #a86d38;
+  background-size: 9px 100%, auto;
 }
 
 .furniture.desk {
@@ -3328,8 +3383,9 @@ p {
   left: 8%;
   width: 34%;
   height: 15%;
-  border-radius: 4px;
-  background: #ffd76d;
+  border: 2px solid #9a7025;
+  border-radius: 1px;
+  background: #d9a23e;
 }
 
 .furniture.kitchen {
@@ -3337,8 +3393,11 @@ p {
   left: 8%;
   width: 42%;
   height: 34%;
-  border-radius: 8px;
-  background: linear-gradient(180deg, #ffffff 0 36%, #7ecbff 36%);
+  border: 2px solid #416d7a;
+  border-radius: 1px;
+  background:
+    linear-gradient(180deg, #f4efe4 0 36%, #69c7d9 36%),
+    #69c7d9;
 }
 
 .furniture.fridge {
@@ -3346,8 +3405,11 @@ p {
   right: 10%;
   width: 24%;
   height: 62%;
-  border-radius: 6px;
-  background: #d9f2ff;
+  border: 2px solid #7f8d94;
+  border-radius: 1px;
+  background:
+    linear-gradient(180deg, #f7feff 0 48%, #cfdde4 48%),
+    #d9f2ff;
 }
 
 .furniture.toy-shelf {
@@ -3355,8 +3417,9 @@ p {
   left: 10%;
   width: 22%;
   height: 28%;
-  border-radius: 5px;
-  background: repeating-linear-gradient(90deg, #ff84b7 0 8px, #ffd76d 8px 16px);
+  border: 2px solid #5d3d24;
+  border-radius: 1px;
+  background: repeating-linear-gradient(90deg, #d66d8a 0 8px, #ffd76d 8px 16px);
 }
 
 .furniture.toilet {
@@ -3364,8 +3427,9 @@ p {
   bottom: 8%;
   width: 30%;
   height: 30%;
-  border-radius: 5px 5px 14px 14px;
-  background: #ffffff;
+  border: 2px solid #bfcbd0;
+  border-radius: 1px;
+  background: #f4efe4;
 }
 
 .furniture.sink {
@@ -3373,7 +3437,8 @@ p {
   left: 10%;
   width: 30%;
   height: 18%;
-  border-radius: 999px;
+  border: 2px solid #8fbccc;
+  border-radius: 1px;
   background: #cdefff;
 }
 
@@ -3382,8 +3447,12 @@ p {
   left: 10%;
   width: 48%;
   height: 24%;
-  border-radius: 4px 4px 16px 16px;
-  background: #9fdfff;
+  border: 2px solid #69a7b8;
+  border-radius: 1px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.28) 1px, transparent 1px),
+    #9fdfff;
+  background-size: 9px 100%, auto;
 }
 
 .villa-outdoor.garden {
@@ -3391,12 +3460,16 @@ p {
   left: 7%;
   width: 18%;
   height: 14%;
-  border-radius: 50%;
+  border: 3px solid #5f8e36;
+  border-radius: 2px;
   background:
-    radial-gradient(circle at 24% 42%, #ff84b7 0 10%, transparent 11%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(54, 94, 43, 0.2) 1px, transparent 1px),
+    radial-gradient(circle at 24% 42%, #d66d8a 0 10%, transparent 11%),
     radial-gradient(circle at 58% 30%, #ffd76d 0 11%, transparent 12%),
-    radial-gradient(circle at 72% 66%, #7ecbff 0 10%, transparent 11%),
+    radial-gradient(circle at 72% 66%, #69c7d9 0 10%, transparent 11%),
     #95c94f;
+  background-size: 11px 11px, 11px 11px, auto, auto, auto, auto;
 }
 
 .villa-outdoor.pool {
@@ -3404,9 +3477,13 @@ p {
   bottom: 13%;
   width: 22%;
   height: 15%;
-  border: 5px solid #ffffff;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #69c7d9, #bff5ff);
+  border: 5px solid #f4efe4;
+  border-radius: 2px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.22) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(33, 91, 105, 0.18) 1px, transparent 1px),
+    linear-gradient(135deg, #69c7d9, #bff5ff);
+  background-size: 12px 12px, 12px 12px, auto;
 }
 
 .villa-outdoor.fountain {
@@ -3414,8 +3491,9 @@ p {
   bottom: 12%;
   width: 9%;
   height: 13%;
-  border-radius: 50% 50% 40% 40%;
-  background: linear-gradient(180deg, #ffffff, #7ecbff);
+  border: 2px solid #6ca4b7;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #f4efe4, #69c7d9);
   box-shadow: 0 -10px 0 -5px rgba(126, 203, 255, 0.45);
 }
 
@@ -3424,8 +3502,12 @@ p {
   bottom: 23%;
   width: 18%;
   height: 24%;
-  border-radius: 8px;
-  background: linear-gradient(180deg, #fff6df, #e8c39a);
+  border: 4px solid #8c6a3c;
+  border-radius: 2px;
+  background:
+    linear-gradient(90deg, rgba(82, 66, 43, 0.18) 1px, transparent 1px),
+    linear-gradient(180deg, #d1c2a1, #9f8c6b);
+  background-size: 12px 100%, auto;
 }
 
 .villa-built-list {
@@ -3439,20 +3521,24 @@ p {
 
 .villa-built-list span {
   padding: 4px 7px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.74);
-  color: #8d4f9f;
+  border: 2px solid rgba(82, 66, 43, 0.16);
+  border-radius: 2px;
+  background: rgba(255, 248, 220, 0.84);
+  color: #6f4a22;
   font-size: 0.68rem;
   font-weight: 900;
 }
 
 .reward-burst.burst-build strong {
-  color: #8d4f9f;
+  color: #6f4a22;
 }
 
 .reward-burst.burst-build span {
-  border-radius: 3px;
-  background: linear-gradient(135deg, #ff84b7, #ffd76d);
+  border-radius: 1px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+    linear-gradient(135deg, #79b84a, #c08a47);
+  background-size: 8px 100%, auto;
 }
 
 /* ===== 冒險地圖 ===== */

@@ -170,11 +170,30 @@ function PetToken3D({ entry, index, selected, active }) {
   );
 }
 
+function VoxelBlock({ position, args, color, emissive = null, opacity = 1 }) {
+  return (
+    <mesh position={position}>
+      <boxGeometry args={args} />
+      <meshStandardMaterial
+        color={color}
+        roughness={0.68}
+        metalness={0.02}
+        emissive={emissive || color}
+        emissiveIntensity={emissive ? 0.12 : 0}
+        transparent={opacity < 1}
+        opacity={opacity}
+      />
+    </mesh>
+  );
+}
+
 function Villa3D({ house }) {
   const groupRef = useRef(null);
   const safeHouse = normalizeHouse(house);
   const built = new Set(safeHouse.built);
   const has = (id) => built.has(id);
+  const wallColor = has('foundation') ? '#d2a45c' : '#c8d4c6';
+  const foundationBlocks = [-1.08, -0.54, 0, 0.54, 1.08];
 
   useFrame((state) => {
     if (!groupRef.current) return;
@@ -184,57 +203,40 @@ function Villa3D({ house }) {
 
   return (
     <group ref={groupRef} position={[-0.2, -0.2, 0.32]} scale={1.08}>
-      <mesh position={[0, -0.42, 0]}>
-        <boxGeometry args={[2.7, 0.18, 1.45]} />
-        <meshStandardMaterial color="#b6f0cf" roughness={0.72} />
-      </mesh>
-      <mesh position={[0, 0.05, 0]}>
-        <boxGeometry args={[2.05, 1.05, 1.2]} />
-        <meshStandardMaterial color={has('foundation') ? '#fff5df' : '#d8e8df'} roughness={0.58} />
-      </mesh>
+      <VoxelBlock position={[0, -0.48, 0]} args={[2.9, 0.18, 1.55]} color="#79b84a" />
+      <VoxelBlock position={[0, 0.05, 0]} args={[2.08, 1.05, 1.18]} color={wallColor} opacity={has('foundation') ? 1 : 0.64} />
+      {foundationBlocks.map((x) => (
+        <VoxelBlock key={x} position={[x, -0.38, 0.68]} args={[0.48, 0.22, 0.16]} color={has('foundation') ? '#79b84a' : '#b6cbb1'} />
+      ))}
+      {[-0.78, -0.26, 0.26, 0.78].map((x) => (
+        <VoxelBlock key={`plank-${x}`} position={[x, 0.26, 0.66]} args={[0.42, 0.36, 0.08]} color="#e2bb72" opacity={has('foundation') ? 1 : 0.5} />
+      ))}
       {has('secondFloor') ? (
-        <mesh position={[0, 0.78, 0]}>
-          <boxGeometry args={[1.75, 0.78, 1.05]} />
-          <meshStandardMaterial color="#ffe8f2" roughness={0.55} />
-        </mesh>
+        <VoxelBlock position={[0, 0.78, 0]} args={[1.78, 0.78, 1.04]} color="#c79255" />
       ) : null}
       {has('roof') ? (
-        <mesh position={[0, 1.16, 0]} rotation={[0, 0, Math.PI / 4]}>
-          <boxGeometry args={[1.65, 1.65, 1.28]} />
-          <meshStandardMaterial color="#ff84b7" roughness={0.44} />
-        </mesh>
+        <>
+          <VoxelBlock position={[0, 1.05, 0]} args={[2.28, 0.22, 1.34]} color="#d36d55" />
+          <VoxelBlock position={[0, 1.26, 0]} args={[1.74, 0.24, 1.18]} color="#b94f45" />
+          <VoxelBlock position={[0, 1.48, 0]} args={[1.02, 0.24, 0.96]} color="#9f4a3e" />
+        </>
       ) : null}
       {has('frontDoor') ? (
-        <mesh position={[0, -0.21, 0.64]}>
-          <boxGeometry args={[0.38, 0.62, 0.08]} />
-          <meshStandardMaterial color="#8f78ff" roughness={0.4} />
-        </mesh>
+        <VoxelBlock position={[0, -0.2, 0.66]} args={[0.4, 0.66, 0.1]} color="#7b4a24" />
       ) : null}
       {['windowLeft', 'windowRight'].map((id, index) => (
         has(id) ? (
-          <mesh key={id} position={[index === 0 ? -0.62 : 0.62, 0.1, 0.66]}>
-            <boxGeometry args={[0.34, 0.34, 0.07]} />
-            <meshStandardMaterial color="#7ecbff" roughness={0.2} emissive="#7ecbff" emissiveIntensity={0.1} />
-          </mesh>
+          <VoxelBlock key={id} position={[index === 0 ? -0.62 : 0.62, 0.1, 0.68]} args={[0.34, 0.34, 0.08]} color="#69c7d9" emissive="#69c7d9" />
         ) : null
       ))}
       {has('balcony') ? (
-        <mesh position={[0, 0.56, 0.72]}>
-          <boxGeometry args={[1.0, 0.14, 0.2]} />
-          <meshStandardMaterial color="#ffffff" roughness={0.34} />
-        </mesh>
+        <VoxelBlock position={[0, 0.56, 0.72]} args={[1.0, 0.14, 0.2]} color="#f4efe4" />
       ) : null}
       {has('chimney') ? (
-        <mesh position={[0.67, 1.36, -0.12]}>
-          <boxGeometry args={[0.22, 0.56, 0.24]} />
-          <meshStandardMaterial color="#b98a5e" roughness={0.56} />
-        </mesh>
+        <VoxelBlock position={[0.67, 1.54, -0.12]} args={[0.24, 0.58, 0.26]} color="#77675b" />
       ) : null}
       {has('pool') ? (
-        <mesh position={[1.55, -0.34, 0.36]} rotation={[-Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[0.46, 32]} />
-          <meshStandardMaterial color="#69c7d9" roughness={0.22} emissive="#69c7d9" emissiveIntensity={0.08} />
-        </mesh>
+        <VoxelBlock position={[1.52, -0.39, 0.36]} args={[0.86, 0.08, 0.62]} color="#69c7d9" emissive="#69c7d9" />
       ) : null}
     </group>
   );

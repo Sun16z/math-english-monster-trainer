@@ -1204,15 +1204,15 @@ function HouseProgressCard({ house }) {
   const nextItem = HOUSE_ITEMS.find((item) => !safeHouse.built.includes(item.id));
   const progress = Math.min(100, (safeHouse.builtCount / safeHouse.total) * 100);
   return (
-    <div className="house-progress-card" aria-label="豪華別墅進度">
+    <div className="house-progress-card" aria-label="方塊別墅進度">
       <div className="mission-head">
-        <span>豪華別墅</span>
+        <span>方塊別墅</span>
         <strong>{safeHouse.complete ? `升級 ${safeHouse.renovation}` : `${safeHouse.builtCount}/${safeHouse.total}`}</strong>
       </div>
       <div className="meter house-meter" aria-label="房子建造進度">
         <span style={{ width: `${progress}%` }} />
       </div>
-      <p>{nextItem ? `下一題答對可蓋：${nextItem.label}` : '房子已完成，答對會繼續豪宅升級。'}</p>
+      <p>{nextItem ? `下一題答對可放置：${nextItem.label}` : '方塊別墅已完成，答對會繼續豪宅升級。'}</p>
     </div>
   );
 }
@@ -1334,9 +1334,9 @@ function HouseVilla({
   ];
 
   return (
-    <div className="villa-stage" aria-label="豪華別墅">
+    <div className="villa-stage" aria-label="方塊別墅">
       <div className="villa-progress-badge">
-        <span>豪華別墅</span>
+        <span>方塊別墅</span>
         <strong>{safeHouse.complete ? `完成 +${safeHouse.renovation}` : `${safeHouse.builtCount}/${safeHouse.total}`}</strong>
       </div>
       <div className="villa-lot">
@@ -2459,7 +2459,7 @@ export default function App() {
     const growthText = activePetStage
       ? ` 寵物成長：${activePetStage.title} Lv.${activePetStage.level}，裝飾：${activePet.accessory.label}。`
       : '';
-    const houseText = ` 建造：${houseResult.reward.label}。`;
+    const houseText = ` 放置方塊：${houseResult.reward.label}。`;
     const foodText = ` 得到點心：${rewardFood.label}。`;
     const eggText = hatchResult
       ? ` 蛋孵化了：${hatchResult.skin.label}色夥伴！`
@@ -2559,7 +2559,7 @@ export default function App() {
         detail: `${run.question.explanation}${houseText}${growthText}${foodText}${eggText}`,
       },
       log: [
-        `建造：${houseResult.reward.label}`,
+        `放置方塊：${houseResult.reward.label}`,
         hatchResult
           ? `孵化：${hatchResult.skin.label}色${MONSTERS.find((item) => item.id === hatchResult.monsterId)?.name || '夥伴'}`
           : nextHp === 0
