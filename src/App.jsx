@@ -6,8 +6,10 @@ import {
   HOUSE_ITEMS,
   MODES,
   MONSTERS,
+  PET_ACCESSORIES,
   PET_FOODS,
   PET_SKINS,
+  SHOP_ITEMS,
   STAGES,
   addFoodToBag,
   addHouseProgress,
@@ -33,6 +35,7 @@ import {
   normalizeHouse,
   normalizeMapProgress,
   normalizePetDex,
+  normalizeShop,
   summarizeRun,
   warmEgg,
 } from './gameLogic.js';
@@ -44,6 +47,32 @@ const PetWorld3D = lazy(() => import('./PetWorld3D.jsx'));
 
 const PET_SKINS_BY_ID = Object.fromEntries(PET_SKINS.map((skin) => [skin.id, skin]));
 const HOUSE_ITEMS_BY_ID = Object.fromEntries(HOUSE_ITEMS.map((item) => [item.id, item]));
+const PET_ACCESSORIES_BY_ID = Object.fromEntries(PET_ACCESSORIES.map((item) => [item.id, item]));
+const SHOP_ITEMS_BY_ID = Object.fromEntries(SHOP_ITEMS.map((item) => [item.id, item]));
+
+const ACCOUNT_ROLES = {
+  boy: {
+    id: 'boy',
+    label: '男生',
+    short: '男',
+    description: '答對強化裝備',
+  },
+  girl: {
+    id: 'girl',
+    label: '女生',
+    short: '女',
+    description: '用點數逛商店',
+  },
+};
+
+const EQUIPMENT_STAGES = [
+  { min: 0, next: 5, name: '木紋短劍', rank: '練習裝' },
+  { min: 5, next: 12, name: '石心護盾', rank: '進階裝' },
+  { min: 12, next: 22, name: '鐵星鎧甲', rank: '強化裝' },
+  { min: 22, next: 36, name: '水晶戰靴', rank: '菁英裝' },
+  { min: 36, next: 54, name: '星光套裝', rank: '英雄裝' },
+  { min: 54, next: Infinity, name: '彩虹能量甲', rank: '傳說裝' },
+];
 
 const SOUND_LIBRARY = {
   select: {
@@ -462,6 +491,39 @@ function makeTimestamp() {
   return new Date().toISOString();
 }
 
+function normalizeRole(role) {
+  return role === 'boy' ? 'boy' : 'girl';
+}
+
+function getRoleLabel(role) {
+  return ACCOUNT_ROLES[normalizeRole(role)].label;
+}
+
+function toNonNegativeInteger(value) {
+  return Math.max(0, Math.floor(Number(value) || 0));
+}
+
+function getEquipmentStage(power = 0) {
+  const safePower = toNonNegativeInteger(power);
+  return EQUIPMENT_STAGES.find((stage) => safePower >= stage.min && safePower < stage.next) || EQUIPMENT_STAGES[EQUIPMENT_STAGES.length - 1];
+}
+
+function applyShopItemToPetDex(rawPetDex, collection, petId, shopItem) {
+  if (!petId || !shopItem) return normalizePetDex(rawPetDex, collection);
+  const accessory = PET_ACCESSORIES_BY_ID[shopItem.accessoryId];
+  if (!accessory) return normalizePetDex(rawPetDex, collection);
+  const normalizedDex = normalizePetDex(rawPetDex, collection);
+  const currentPet = normalizedDex[petId];
+  if (!currentPet) return normalizedDex;
+  return {
+    ...normalizedDex,
+    [petId]: {
+      ...currentPet,
+      accessory,
+    },
+  };
+}
+
 function getProfileStorageKey(accountId) {
   return `${STORAGE_KEY}:profile:${accountId || 'guest'}`;
 }
@@ -487,6 +549,7 @@ function makeDefaultAccount() {
     id: 'guest',
     displayName: '小小訓練師',
     familyCode: 'local',
+    role: 'girl',
     createdAt: now,
     lastLoginAt: now,
   };
@@ -501,6 +564,7 @@ function normalizeAccount(rawAccount) {
     id,
     displayName,
     familyCode,
+    role: normalizeRole(rawAccount.role),
     createdAt: rawAccount.createdAt || makeTimestamp(),
     lastLoginAt: rawAccount.lastLoginAt || rawAccount.createdAt || makeTimestamp(),
   };
@@ -544,11 +608,16 @@ function makeEmptyProfile(account) {
   return {
     accountId: account?.id || 'guest',
     ownerName: account?.displayName || '小小訓練師',
+    role: normalizeRole(account?.role),
     bestScore: 0,
+    learningPoints: 0,
+    totalLearningPoints: 0,
+    equipmentPower: 0,
     collection: [],
     petDex: {},
     foodBag: {},
     house: normalizeHouse(),
+    shop: normalizeShop(),
     mapProgress: {},
     sessions: 0,
     updatedAt: makeTimestamp(),
@@ -558,13 +627,20 @@ function makeEmptyProfile(account) {
 function normalizeProfile(parsed, account) {
   const empty = makeEmptyProfile(account);
   const collection = Array.isArray(parsed?.collection) ? parsed.collection : [];
+  const learningPoints = toNonNegativeInteger(parsed?.learningPoints);
+  const totalLearningPoints = Math.max(learningPoints, toNonNegativeInteger(parsed?.totalLearningPoints));
   return {
     ...empty,
+    role: normalizeRole(account?.role || parsed?.role),
     bestScore: Number(parsed?.bestScore) || 0,
+    learningPoints,
+    totalLearningPoints,
+    equipmentPower: toNonNegativeInteger(parsed?.equipmentPower),
     collection,
     petDex: normalizePetDex(parsed?.petDex, collection),
     foodBag: normalizeFoodBag(parsed?.foodBag),
     house: normalizeHouse(parsed?.house),
+    shop: normalizeShop(parsed?.shop),
     mapProgress: normalizeMapProgress(parsed?.mapProgress),
     sessions: Number(parsed?.sessions) || 0,
     updatedAt: parsed?.updatedAt || empty.updatedAt,
@@ -598,6 +674,7 @@ function saveProfile(account, profile) {
     ...profile,
     accountId: targetAccount.id,
     ownerName: targetAccount.displayName,
+    role: targetAccount.role,
     updatedAt: makeTimestamp(),
   }, targetAccount);
   localStorage.setItem(getProfileStorageKey(targetAccount.id), JSON.stringify(normalized));
@@ -795,6 +872,53 @@ function AccessoryLayer({ accessory }) {
         <path d="M96 154h32l-7 24H103Z" />
         <path d="M103 154c3-10 15-14 22 0" />
         <circle cx="112" cy="183" r="5" />
+      </g>
+    );
+  }
+
+  if (accessory.id === 'flowerHeadband') {
+    return (
+      <g className="accessory accessory-flower-headband">
+        <path d="M72 67c24-17 54-18 79 0" />
+        {[76, 95, 116, 137].map((cx, index) => (
+          <g key={cx} className={`flower flower-${index}`}>
+            <circle cx={cx} cy={61 - (index % 2) * 4} r="7" />
+            <circle cx={cx - 6} cy={60 - (index % 2) * 4} r="5" />
+            <circle cx={cx + 6} cy={60 - (index % 2) * 4} r="5" />
+            <circle cx={cx} cy={55 - (index % 2) * 4} r="5" />
+            <circle cx={cx} cy={62 - (index % 2) * 4} r="3" />
+          </g>
+        ))}
+      </g>
+    );
+  }
+
+  if (accessory.id === 'starCape') {
+    return (
+      <g className="accessory accessory-star-cape">
+        <path d="M55 116c16 24 32 39 55 43 22-4 42-21 55-44l-13 70c-28 15-57 15-84 0Z" />
+        <path d="M99 134 106 148l16 2-12 10 4 16-15-9-14 9 4-16-12-10 16-2Z" />
+      </g>
+    );
+  }
+
+  if (accessory.id === 'petDress') {
+    return (
+      <g className="accessory accessory-pet-dress">
+        <path d="M70 126c7 31 24 48 42 48 19 0 35-17 42-48-24 12-57 12-84 0Z" />
+        <path d="M82 145c18 9 41 9 60 0" />
+        <circle cx="92" cy="136" r="4" />
+        <circle cx="132" cy="136" r="4" />
+      </g>
+    );
+  }
+
+  if (accessory.id === 'blockHood') {
+    return (
+      <g className="accessory accessory-block-hood">
+        <path d="M75 43h72v42H75Z" />
+        <path d="M85 32h52v14H85Z" />
+        <path d="M88 55h14v14H88ZM121 55h14v14h-14Z" />
       </g>
     );
   }
@@ -1074,6 +1198,83 @@ function ModeControls({ mode, grade, difficulty, onModeChange, onGradeChange, on
         ))}
       </div>
     </div>
+  );
+}
+
+function EquipmentCard({ profile }) {
+  const power = toNonNegativeInteger(profile.equipmentPower);
+  const stage = getEquipmentStage(power);
+  const nextGoal = Number.isFinite(stage.next) ? stage.next : stage.min + 18;
+  const progress = Math.min(100, ((power - stage.min) / Math.max(1, nextGoal - stage.min)) * 100);
+
+  return (
+    <section className="equipment-card" aria-label="男生裝備強化">
+      <div className="mission-head">
+        <span>男生裝備</span>
+        <strong>{stage.rank}</strong>
+      </div>
+      <div className="equipment-body">
+        <div className="equipment-icon" aria-hidden="true">
+          <span className="gear-sword" />
+          <span className="gear-shield" />
+        </div>
+        <div className="equipment-meta">
+          <strong>{stage.name}</strong>
+          <span>戰力 {power}</span>
+          <div className="meter equipment-meter" aria-label="裝備強化進度">
+            <span style={{ width: `${progress}%` }} />
+          </div>
+          <p>{Number.isFinite(stage.next) ? `再強化 ${stage.next - power} 次升階` : '已經是最高級裝備，繼續答題累積傳說戰力。'}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PetShop({ profile, selectedPet, onBuyItem, onEquipItem }) {
+  const shop = normalizeShop(profile.shop);
+  const points = toNonNegativeInteger(profile.learningPoints);
+  const equippedItemId = selectedPet ? shop.equippedByPet?.[selectedPet.id] : null;
+
+  return (
+    <section className="pet-shop" aria-label="女生寵物商店">
+      <div className="mission-head">
+        <span>女生商店</span>
+        <strong>{points} 點</strong>
+      </div>
+      <p>{selectedPet ? `幫 ${selectedPet.displayName} 挑衣服和頭飾。` : '可以先買進衣櫃，收服寵物後再穿上。'}</p>
+      <div className="shop-grid">
+        {SHOP_ITEMS.map((item) => {
+          const owned = shop.owned.includes(item.id);
+          const equipped = equippedItemId === item.id;
+          const canBuy = points >= item.cost;
+          const disabled = owned ? !selectedPet || equipped : !canBuy;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className={`shop-item ${owned ? 'owned' : ''} ${equipped ? 'equipped' : ''}`}
+              onClick={() => (owned ? onEquipItem(item.id) : onBuyItem(item.id))}
+              disabled={disabled}
+            >
+              <span
+                className="shop-swatch"
+                aria-hidden="true"
+                style={{
+                  '--shop-a': item.colorA,
+                  '--shop-b': item.colorB,
+                }}
+              />
+              <span className="shop-copy">
+                <strong>{item.label}</strong>
+                <em>{item.type} · {item.cost} 點</em>
+              </span>
+              <b>{equipped ? '穿上' : owned ? '換上' : canBuy ? '購買' : '點數不足'}</b>
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -1409,7 +1610,7 @@ function HouseVilla({
   );
 }
 
-function ProgressRail({ run, profile, ownedPets, selectedPetId, onSelectPet, onFeedFood }) {
+function ProgressRail({ run, profile, ownedPets, selectedPetId, onSelectPet, onFeedFood, onBuyShopItem, onEquipShopItem }) {
   const summary = summarizeRun(run);
   const missionProgress = Math.min(5, run.correctCount);
   const outlineSubject = run.mode === 'mixed' ? run.question.subject : run.mode;
@@ -1477,6 +1678,16 @@ function ProgressRail({ run, profile, ownedPets, selectedPetId, onSelectPet, onF
           <strong>{run.reviewQueue?.length || 0}</strong>
         </div>
       </div>
+      {profile.role === 'boy' ? (
+        <EquipmentCard profile={profile} />
+      ) : (
+        <PetShop
+          profile={profile}
+          selectedPet={selectedPet}
+          onBuyItem={onBuyShopItem}
+          onEquipItem={onEquipShopItem}
+        />
+      )}
       <HouseProgressCard house={run.house} />
       <EggCard egg={run.currentEgg} />
       <FoodPack foodBag={run.foodBag} selectedPet={selectedPet} onFeedFood={onFeedFood} />
@@ -1828,28 +2039,45 @@ function SoundControls({ enabled, audioState, onToggle, onTest }) {
 function AccountPanel({ account, accounts, onLogin, onSwitch }) {
   const [displayName, setDisplayName] = useState(account.displayName || '');
   const [familyCode, setFamilyCode] = useState(account.familyCode === 'local' ? '' : account.familyCode || '');
+  const [role, setRole] = useState(normalizeRole(account.role));
 
   useEffect(() => {
     setDisplayName(account.displayName || '');
     setFamilyCode(account.familyCode === 'local' ? '' : account.familyCode || '');
-  }, [account.id, account.displayName, account.familyCode]);
+    setRole(normalizeRole(account.role));
+  }, [account.id, account.displayName, account.familyCode, account.role]);
 
   const submitLogin = (event) => {
     event.preventDefault();
     onLogin({
       displayName,
       familyCode,
+      role,
     });
   };
 
   return (
     <details className="account-menu">
       <summary>
-        <span>帳號</span>
+        <span>帳號 · {getRoleLabel(account.role)}</span>
         <strong>{account.displayName}</strong>
       </summary>
       <div className="account-popover">
         <form className="account-form" onSubmit={submitLogin}>
+          <div className="account-role-picker" role="radiogroup" aria-label="登入角色">
+            {Object.values(ACCOUNT_ROLES).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={role === item.id ? 'active' : ''}
+                onClick={() => setRole(item.id)}
+                aria-pressed={role === item.id}
+              >
+                <strong>{item.label}</strong>
+                <span>{item.description}</span>
+              </button>
+            ))}
+          </div>
           <label>
             <span>名字</span>
             <input
@@ -1879,7 +2107,7 @@ function AccountPanel({ account, accounts, onLogin, onSwitch }) {
               onClick={() => onSwitch(item.id)}
             >
               <strong>{item.displayName}</strong>
-              <span>{item.familyCode}</span>
+              <span>{getRoleLabel(item.role)} · {item.familyCode}</span>
             </button>
           ))}
         </div>
@@ -1938,6 +2166,7 @@ function TopBar({
             <HeartIcon key={index} filled={index < run.hearts} />
           ))}
         </div>
+        <StatPill label="學習點" value={profile.learningPoints || 0} />
         <StatPill label="連擊" value={run.streak} />
         <StatPill label="分數" value={run.score} />
         <StatPill label="最佳" value={Math.max(profile.bestScore, run.score)} />
@@ -2242,7 +2471,7 @@ export default function App() {
     return speakEnglish(run.question.practiceText || run.question.answer, { force: true, rate: 0.78 });
   }, [run.question.answer, run.question.practiceText, speakEnglish]);
 
-  const saveRunProfile = (nextRun, stageStarsUpdate = null) => {
+  const saveRunProfile = (nextRun, stageStarsUpdate = null, profilePatch = {}) => {
     const collection = [...new Set([...profile.collection, ...nextRun.collection])];
     const mapProgress = { ...profile.mapProgress };
     if (stageStarsUpdate) {
@@ -2253,11 +2482,19 @@ export default function App() {
     const nextProfile = {
       accountId: activeAccount.id,
       ownerName: activeAccount.displayName,
+      role: normalizeRole(profilePatch.role || activeAccount.role || profile.role),
       bestScore: Math.max(profile.bestScore, nextRun.score),
+      learningPoints: toNonNegativeInteger(profilePatch.learningPoints ?? profile.learningPoints),
+      totalLearningPoints: Math.max(
+        toNonNegativeInteger(profilePatch.totalLearningPoints ?? profile.totalLearningPoints),
+        toNonNegativeInteger(profilePatch.learningPoints ?? profile.learningPoints),
+      ),
+      equipmentPower: toNonNegativeInteger(profilePatch.equipmentPower ?? profile.equipmentPower),
       collection,
       petDex: normalizePetDex({ ...profile.petDex, ...nextRun.petDex }, collection),
       foodBag: normalizeFoodBag(nextRun.foodBag),
       house: normalizeHouse(nextRun.house || profile.house),
+      shop: normalizeShop(profilePatch.shop || profile.shop),
       mapProgress: normalizeMapProgress(mapProgress),
       sessions: profile.sessions + (nextRun.phase === 'playing' ? 0 : 1),
     };
@@ -2304,14 +2541,16 @@ export default function App() {
     void playSound('select');
   };
 
-  const loginAccount = ({ displayName, familyCode }) => {
+  const loginAccount = ({ displayName, familyCode, role }) => {
     const nextName = cleanAccountText(displayName, '小小訓練師');
     const nextFamily = cleanAccountText(familyCode, 'local');
+    const nextRole = normalizeRole(role);
     const now = makeTimestamp();
     const nextAccount = normalizeAccount({
       id: makeAccountId(nextName, nextFamily),
       displayName: nextName,
       familyCode: nextFamily,
+      role: nextRole,
       createdAt: accounts.find((account) => account.id === makeAccountId(nextName, nextFamily))?.createdAt || now,
       lastLoginAt: now,
     });
@@ -2416,6 +2655,12 @@ export default function App() {
     const nextHearts = Math.min(run.maxHearts, run.hearts + (run.retrying ? 0 : 1));
     const nextStreak = correct ? run.streak + 1 : 0;
     const scoreGain = correct ? Math.max(35, 90 + run.level * 12 + run.streak * 18 - run.wrongChoices.length * 18) : 0;
+    const activeRole = normalizeRole(profile.role || activeAccount.role);
+    const learningPointGain = 10 + Math.min(10, nextStreak * 2) + (run.wrongChoices.length === 0 ? 3 : 0);
+    const equipmentGain = activeRole === 'boy' ? 1 + (nextStreak >= 3 ? 1 : 0) : 0;
+    const nextLearningPoints = toNonNegativeInteger(profile.learningPoints) + learningPointGain;
+    const nextTotalLearningPoints = toNonNegativeInteger(profile.totalLearningPoints) + learningPointGain;
+    const nextEquipmentPower = toNonNegativeInteger(profile.equipmentPower) + equipmentGain;
     const nextCollection = nextHp === 0 ? [...new Set([...run.collection, run.monster.id])] : run.collection;
     const alreadyOwned = run.collection.includes(run.monster.id) || profile.collection.includes(run.monster.id);
     const petXpGain = nextHp === 0 ? (run.retrying ? 3 : 4) : alreadyOwned ? 1 : 0;
@@ -2460,6 +2705,10 @@ export default function App() {
       ? ` 寵物成長：${activePetStage.title} Lv.${activePetStage.level}，裝飾：${activePet.accessory.label}。`
       : '';
     const houseText = ` 放置方塊：${houseResult.reward.label}。`;
+    const pointText = ` 學習點數 +${learningPointGain}。`;
+    const roleRewardText = activeRole === 'boy'
+      ? ` 裝備強化 +${equipmentGain}，戰力 ${nextEquipmentPower}。`
+      : ' 商店點數可以換寵物衣服和頭飾。';
     const foodText = ` 得到點心：${rewardFood.label}。`;
     const eggText = hatchResult
       ? ` 蛋孵化了：${hatchResult.skin.label}色夥伴！`
@@ -2556,9 +2805,10 @@ export default function App() {
             : run.wrongChoices.length > 0
               ? `訂正成功 +${damage}`
               : `命中 +${damage}`,
-        detail: `${run.question.explanation}${houseText}${growthText}${foodText}${eggText}`,
+        detail: `${run.question.explanation}${houseText}${pointText}${roleRewardText}${growthText}${foodText}${eggText}`,
       },
       log: [
+        `學習點數 +${learningPointGain}${equipmentGain > 0 ? `｜裝備 +${equipmentGain}` : ''}`,
         `放置方塊：${houseResult.reward.label}`,
         hatchResult
           ? `孵化：${hatchResult.skin.label}色${MONSTERS.find((item) => item.id === hatchResult.monsterId)?.name || '夥伴'}`
@@ -2573,7 +2823,11 @@ export default function App() {
     };
 
     setRun(nextRun);
-    saveRunProfile(nextRun);
+    saveRunProfile(nextRun, null, {
+      learningPoints: nextLearningPoints,
+      totalLearningPoints: nextTotalLearningPoints,
+      equipmentPower: nextEquipmentPower,
+    });
     if (nextRun.question.subject === 'english') {
       window.setTimeout(() => {
         void speakEnglish(nextRun.question.practiceText || nextRun.question.answer, { rate: 0.78 });
@@ -2638,6 +2892,120 @@ export default function App() {
       monsterId: leadPet.id,
       food: result.food,
     }, 1100);
+  };
+
+  const buyShopItem = (itemId) => {
+    const item = SHOP_ITEMS_BY_ID[itemId];
+    if (!item) return;
+    const shop = normalizeShop(profile.shop);
+    if (shop.owned.includes(item.id)) {
+      equipShopItem(item.id);
+      return;
+    }
+
+    const currentPoints = toNonNegativeInteger(profile.learningPoints);
+    if (currentPoints < item.cost) {
+      void playSound('wrong');
+      showBurst({ type: 'wrong', label: '點數不足' }, 820);
+      setRun((current) => ({
+        ...current,
+        feedback: {
+          kind: 'bad',
+          title: '商店點數還不夠',
+          detail: `再答對題目賺學習點數，就能買 ${item.label}。`,
+        },
+        log: [
+          `商店：${item.label} 需要 ${item.cost} 點`,
+          ...current.log,
+        ].slice(0, 6),
+      }));
+      return;
+    }
+
+    const collection = [...new Set([...(profile.collection || []), ...(run.collection || [])])];
+    const targetPetId = selectedPetId && collection.includes(selectedPetId) ? selectedPetId : null;
+    const nextShop = normalizeShop({
+      ...shop,
+      owned: [...shop.owned, item.id],
+      equippedByPet: targetPetId
+        ? { ...shop.equippedByPet, [targetPetId]: item.id }
+        : shop.equippedByPet,
+    });
+    const mergedDex = { ...(profile.petDex || {}), ...(run.petDex || {}) };
+    const nextPetDex = targetPetId
+      ? applyShopItemToPetDex(mergedDex, collection, targetPetId, item)
+      : normalizePetDex(mergedDex, collection);
+    const nextProfile = saveProfile(activeAccount, {
+      ...profile,
+      learningPoints: currentPoints - item.cost,
+      shop: nextShop,
+      petDex: nextPetDex,
+      collection,
+    });
+
+    setProfile(nextProfile);
+    setRun((current) => ({
+      ...current,
+      petDex: nextPetDex,
+      feedback: {
+        kind: 'good',
+        title: `買到 ${item.label}`,
+        detail: targetPetId
+          ? `${item.label} 已經穿到寵物身上，學習點數剩下 ${nextProfile.learningPoints}。`
+          : `${item.label} 已放進衣櫃，收服寵物後可以穿上。`,
+      },
+      log: [
+        `商店購買：${item.label} -${item.cost}`,
+        ...current.log,
+      ].slice(0, 6),
+    }));
+    void playSound('rare');
+    showBurst({ type: 'rare', label: item.label }, 1080);
+    if (targetPetId) showPetAction({ type: 'cheer', monsterId: targetPetId }, 980);
+  };
+
+  const equipShopItem = (itemId) => {
+    const item = SHOP_ITEMS_BY_ID[itemId];
+    if (!item || !selectedPetId) return;
+    const shop = normalizeShop(profile.shop);
+    if (!shop.owned.includes(item.id)) return;
+    const collection = [...new Set([...(profile.collection || []), ...(run.collection || [])])];
+    if (!collection.includes(selectedPetId)) return;
+
+    const nextShop = normalizeShop({
+      ...shop,
+      equippedByPet: {
+        ...shop.equippedByPet,
+        [selectedPetId]: item.id,
+      },
+    });
+    const mergedDex = { ...(profile.petDex || {}), ...(run.petDex || {}) };
+    const nextPetDex = applyShopItemToPetDex(mergedDex, collection, selectedPetId, item);
+    const nextProfile = saveProfile(activeAccount, {
+      ...profile,
+      shop: nextShop,
+      petDex: nextPetDex,
+      collection,
+    });
+    const monster = MONSTERS.find((entry) => entry.id === selectedPetId);
+
+    setProfile(nextProfile);
+    setRun((current) => ({
+      ...current,
+      petDex: nextPetDex,
+      feedback: {
+        kind: 'good',
+        title: `${monster?.name || '寵物'}換裝完成`,
+        detail: `已穿上 ${item.label}。繼續答題賺學習點數，可以買更多衣服和頭飾。`,
+      },
+      log: [
+        `換裝：${item.label}`,
+        ...current.log,
+      ].slice(0, 6),
+    }));
+    void playSound('select');
+    showBurst({ type: 'heart', label: item.label }, 900);
+    showPetAction({ type: 'cheer', monsterId: selectedPetId }, 920);
   };
 
   const interactWithPet = (monsterId, source) => {
@@ -2845,6 +3213,8 @@ export default function App() {
           selectedPetId={selectedPetId}
           onSelectPet={setSelectedPetId}
           onFeedFood={feedSelectedPet}
+          onBuyShopItem={buyShopItem}
+          onEquipShopItem={equipShopItem}
         />
         <Arena
           run={run}

@@ -124,6 +124,58 @@ export const PET_ACCESSORIES = [
   { id: 'emberCharm', label: '火花墜飾', rarity: '熱情' },
   { id: 'mischiefBow', label: '淘氣蝴蝶結', rarity: '俏皮' },
   { id: 'cloudBell', label: '雲朵鈴', rarity: '軟綿' },
+  { id: 'flowerHeadband', label: '花朵髮箍', rarity: '商店', shopOnly: true },
+  { id: 'starCape', label: '星星披風', rarity: '商店', shopOnly: true },
+  { id: 'petDress', label: '糖果洋裝', rarity: '商店', shopOnly: true },
+  { id: 'blockHood', label: '方塊帽', rarity: '商店', shopOnly: true },
+];
+
+export const SHOP_ITEMS = [
+  {
+    id: 'mischiefBow',
+    label: '淘氣蝴蝶結',
+    type: '頭飾',
+    cost: 12,
+    accessoryId: 'mischiefBow',
+    colorA: '#ff7ab6',
+    colorB: '#ffd2e7',
+  },
+  {
+    id: 'flowerHeadband',
+    label: '花朵髮箍',
+    type: '頭飾',
+    cost: 28,
+    accessoryId: 'flowerHeadband',
+    colorA: '#ffb33f',
+    colorB: '#8fd46a',
+  },
+  {
+    id: 'starCape',
+    label: '星星披風',
+    type: '衣服',
+    cost: 42,
+    accessoryId: 'starCape',
+    colorA: '#7d73ff',
+    colorB: '#ffe16d',
+  },
+  {
+    id: 'petDress',
+    label: '糖果洋裝',
+    type: '衣服',
+    cost: 58,
+    accessoryId: 'petDress',
+    colorA: '#ff8fc6',
+    colorB: '#fff0a8',
+  },
+  {
+    id: 'blockHood',
+    label: '方塊帽',
+    type: '頭飾',
+    cost: 74,
+    accessoryId: 'blockHood',
+    colorA: '#6cc4e8',
+    colorB: '#f7f1d4',
+  },
 ];
 
 export const PET_FOODS = [
@@ -193,6 +245,27 @@ export function normalizeHouse(rawHouse = {}) {
     builtCount: built.length,
     total: HOUSE_ITEMS.length,
     complete: built.length >= HOUSE_ITEMS.length,
+  };
+}
+
+export function normalizeShop(rawShop = {}) {
+  const validItemIds = new Set(SHOP_ITEMS.map((item) => item.id));
+  const validPetIds = new Set(MONSTERS.map((monster) => monster.id));
+  const rawOwned = Array.isArray(rawShop?.owned) ? rawShop.owned : [];
+  const owned = [...new Set(rawOwned.filter((itemId) => validItemIds.has(itemId)))];
+  const ownedSet = new Set(owned);
+  const equippedByPet = {};
+
+  const rawEquipped = rawShop?.equippedByPet && typeof rawShop.equippedByPet === 'object'
+    ? rawShop.equippedByPet
+    : {};
+  Object.entries(rawEquipped).forEach(([petId, itemId]) => {
+    if (validPetIds.has(petId) && ownedSet.has(itemId)) equippedByPet[petId] = itemId;
+  });
+
+  return {
+    owned,
+    equippedByPet,
   };
 }
 
@@ -388,10 +461,11 @@ export function getPetStage(pet = {}) {
 }
 
 export function rollPetAccessory(monsterId = '', rng = null) {
+  const rollableAccessories = PET_ACCESSORIES.filter((item) => !item.shopOnly);
   const randomOffset = typeof rng === 'function'
-    ? Math.floor(rng() * PET_ACCESSORIES.length)
+    ? Math.floor(rng() * rollableAccessories.length)
     : hashString(monsterId);
-  return PET_ACCESSORIES[randomOffset % PET_ACCESSORIES.length];
+  return rollableAccessories[randomOffset % rollableAccessories.length];
 }
 
 export function normalizePetDex(rawDex = {}, collection = []) {

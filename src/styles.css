@@ -285,6 +285,51 @@ p {
   gap: 8px;
 }
 
+.account-role-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.account-role-picker button {
+  display: grid;
+  min-width: 0;
+  min-height: 58px;
+  gap: 2px;
+  align-content: center;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(32, 49, 58, 0.04);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.account-role-picker button.active {
+  border-color: rgba(22, 143, 128, 0.45);
+  background: linear-gradient(135deg, rgba(22, 143, 128, 0.16), rgba(246, 201, 77, 0.16));
+  color: var(--teal-dark);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.64);
+}
+
+.account-role-picker strong,
+.account-role-picker span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-role-picker strong {
+  font-size: 0.84rem;
+}
+
+.account-role-picker span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
 .account-form label {
   display: grid;
   gap: 4px;
@@ -345,6 +390,18 @@ p {
   font-size: 0.74rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.account-form .account-role-picker button {
+  border-color: var(--line);
+  background: rgba(32, 49, 58, 0.04);
+  color: var(--ink);
+}
+
+.account-form .account-role-picker button.active {
+  border-color: rgba(22, 143, 128, 0.45);
+  background: linear-gradient(135deg, rgba(22, 143, 128, 0.16), rgba(246, 201, 77, 0.16));
+  color: var(--teal-dark);
 }
 
 .heart-row {
@@ -499,6 +556,186 @@ p {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--paper);
+}
+
+.equipment-card,
+.pet-shop {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(22, 143, 128, 0.22);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at top right, rgba(246, 201, 77, 0.2), transparent 46%),
+    rgba(255, 255, 255, 0.78);
+}
+
+.equipment-body {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.equipment-icon {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(105, 199, 217, 0.28), rgba(246, 201, 77, 0.22)),
+    rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 -6px 0 rgba(32, 49, 58, 0.06);
+}
+
+.gear-sword,
+.gear-shield {
+  position: absolute;
+  content: '';
+}
+
+.gear-sword {
+  top: 9px;
+  left: 27px;
+  width: 7px;
+  height: 38px;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #ffffff, #69c7d9 52%, #20313a 53%, #20313a 68%, #f6c94d 69%);
+  transform: rotate(38deg);
+  box-shadow: 0 3px 8px rgba(32, 49, 58, 0.16);
+}
+
+.gear-shield {
+  right: 8px;
+  bottom: 8px;
+  width: 24px;
+  height: 28px;
+  clip-path: polygon(50% 0, 92% 20%, 84% 72%, 50% 100%, 16% 72%, 8% 20%);
+  background: linear-gradient(135deg, var(--teal), var(--sun));
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.12);
+}
+
+.equipment-meta {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.equipment-meta strong {
+  overflow: hidden;
+  color: var(--teal-dark);
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.equipment-meta span,
+.equipment-meta p,
+.pet-shop p {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1.38;
+}
+
+.equipment-meter {
+  height: 8px;
+}
+
+.shop-grid {
+  display: grid;
+  gap: 7px;
+}
+
+.shop-item {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) minmax(52px, auto);
+  align-items: center;
+  min-width: 0;
+  min-height: 54px;
+  gap: 7px;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.shop-item:hover:not(:disabled) {
+  border-color: rgba(242, 104, 87, 0.34);
+  box-shadow: 0 8px 18px rgba(32, 49, 58, 0.1);
+  transform: translateY(-1px);
+}
+
+.shop-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.shop-item.owned {
+  background: rgba(105, 199, 217, 0.1);
+}
+
+.shop-item.equipped {
+  border-color: rgba(22, 143, 128, 0.46);
+  box-shadow: inset 0 0 0 2px rgba(22, 143, 128, 0.12);
+}
+
+.shop-swatch {
+  display: block;
+  width: 34px;
+  height: 34px;
+  border: 2px solid rgba(255, 255, 255, 0.86);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.86), transparent 24%),
+    linear-gradient(135deg, var(--shop-a), var(--shop-b));
+  box-shadow: 0 5px 12px rgba(32, 49, 58, 0.12);
+}
+
+.shop-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.shop-copy strong,
+.shop-copy em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shop-copy strong {
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.shop-copy em {
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.shop-item b {
+  display: grid;
+  min-height: 27px;
+  place-items: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(246, 201, 77, 0.2);
+  color: #7a5600;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.shop-item.equipped b {
+  background: rgba(22, 143, 128, 0.16);
+  color: var(--teal-dark);
 }
 
 .food-pack {
@@ -1303,6 +1540,60 @@ p {
 
 .monster-figure .accessory-cloud-bell path:first-child {
   fill: #fff6b8;
+}
+
+.monster-figure .accessory-flower-headband {
+  fill: none;
+}
+
+.monster-figure .accessory-flower-headband > path {
+  stroke: #41b77d;
+  stroke-width: 4;
+}
+
+.monster-figure .accessory-flower-headband circle {
+  fill: #ff9fbe;
+}
+
+.monster-figure .accessory-flower-headband circle:last-child {
+  fill: #f6c94d;
+}
+
+.monster-figure .accessory-star-cape {
+  fill: #7d73ff;
+  opacity: 0.88;
+}
+
+.monster-figure .accessory-star-cape path:last-child {
+  fill: #ffe16d;
+  opacity: 1;
+}
+
+.monster-figure .accessory-pet-dress {
+  fill: #ff8fc6;
+}
+
+.monster-figure .accessory-pet-dress path:nth-child(2) {
+  fill: none;
+  stroke: #fff0a8;
+  stroke-width: 5;
+}
+
+.monster-figure .accessory-pet-dress circle {
+  fill: #fff0a8;
+}
+
+.monster-figure .accessory-block-hood {
+  fill: #6cc4e8;
+}
+
+.monster-figure .accessory-block-hood path:nth-child(2) {
+  fill: #f7f1d4;
+}
+
+.monster-figure .accessory-block-hood path:nth-child(3) {
+  fill: #20313a;
+  stroke-width: 1;
 }
 
 .monster-figure .leafmark {
@@ -2517,6 +2808,40 @@ p {
 
   .pet-dex-card {
     min-height: 126px;
+  }
+
+  .account-role-picker {
+    gap: 6px;
+  }
+
+  .account-role-picker button {
+    min-height: 52px;
+    padding: 7px;
+  }
+
+  .shop-item {
+    grid-template-columns: 30px minmax(0, 1fr) minmax(48px, auto);
+    gap: 6px;
+  }
+
+  .shop-swatch {
+    width: 30px;
+    height: 30px;
+  }
+
+  .shop-item b {
+    min-height: 25px;
+    padding: 0 6px;
+    font-size: 0.62rem;
+  }
+
+  .equipment-body {
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  .equipment-icon {
+    width: 52px;
+    height: 52px;
   }
 
   .villa-progress-badge {

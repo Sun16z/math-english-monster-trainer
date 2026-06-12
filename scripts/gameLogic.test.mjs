@@ -6,6 +6,7 @@ import {
   PET_ACCESSORIES,
   PET_FOODS,
   PET_SKINS,
+  SHOP_ITEMS,
   STAGES,
   addFoodToBag,
   addHouseProgress,
@@ -38,6 +39,8 @@ import {
   normalizeHouse,
   normalizeMapProgress,
   normalizePetDex,
+  normalizeShop,
+  rollPetAccessory,
   warmEgg,
 } from '../src/gameLogic.js';
 
@@ -127,6 +130,35 @@ test('signature cute pets use stable original shape variants', () => {
   assert.equal(cloudPet.petShape, 'cloudPup');
   assert.ok(PET_ACCESSORIES.some((accessory) => accessory.id === 'mischiefBow'));
   assert.ok(PET_ACCESSORIES.some((accessory) => accessory.id === 'cloudBell'));
+});
+
+test('shop wardrobe items normalize and point to valid accessories', () => {
+  assert.ok(SHOP_ITEMS.length >= 5);
+  SHOP_ITEMS.forEach((item) => {
+    assert.ok(PET_ACCESSORIES.some((accessory) => accessory.id === item.accessoryId), `${item.id} needs a drawable accessory`);
+    assert.ok(item.cost > 0, `${item.id} needs a learning point cost`);
+  });
+
+  const shopOnlyAccessories = PET_ACCESSORIES.filter((accessory) => accessory.shopOnly).map((accessory) => accessory.id);
+  assert.ok(shopOnlyAccessories.includes('flowerHeadband'));
+  assert.ok(shopOnlyAccessories.includes('starCape'));
+
+  const normalized = normalizeShop({
+    owned: ['flowerHeadband', 'not-real', 'flowerHeadband', 'starCape'],
+    equippedByPet: {
+      mossbit: 'flowerHeadband',
+      flarelume: 'missing',
+      notMonster: 'starCape',
+    },
+  });
+
+  assert.deepEqual(normalized.owned, ['flowerHeadband', 'starCape']);
+  assert.deepEqual(normalized.equippedByPet, { mossbit: 'flowerHeadband' });
+  assert.deepEqual(normalizeShop({ owned: 'bad', equippedByPet: null }), { owned: [], equippedByPet: {} });
+
+  for (let seed = 1; seed <= 30; seed += 1) {
+    assert.notEqual(rollPetAccessory(`pet-${seed}`, makeRng(seed)).shopOnly, true);
+  }
 });
 
 test('math questions always include the correct answer once', () => {
