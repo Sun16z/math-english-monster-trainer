@@ -274,6 +274,33 @@ export function getNextHouseItem(rawHouse = {}) {
   return HOUSE_ITEMS.find((item) => !house.built.includes(item.id)) || null;
 }
 
+export function getHouseRewardChoices(rawHouse = {}, count = 3) {
+  const house = normalizeHouse(rawHouse);
+  const safeCount = Math.max(1, Math.floor(Number(count) || 3));
+  return HOUSE_ITEMS
+    .filter((item) => !house.built.includes(item.id))
+    .slice(0, safeCount);
+}
+
+export function addHouseProgressById(rawHouse = {}, itemId = null) {
+  const house = normalizeHouse(rawHouse);
+  const choices = getHouseRewardChoices(house, HOUSE_ITEMS.length);
+  const reward = choices.find((item) => item.id === itemId) || choices[0] || null;
+
+  if (reward) {
+    const nextHouse = normalizeHouse({
+      ...house,
+      built: [...house.built, reward.id],
+    });
+    return {
+      house: nextHouse,
+      reward,
+    };
+  }
+
+  return addHouseProgress(house);
+}
+
 export function addHouseProgress(rawHouse = {}) {
   const house = normalizeHouse(rawHouse);
   const nextItem = getNextHouseItem(house);

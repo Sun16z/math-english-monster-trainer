@@ -13,6 +13,7 @@ import {
   STAGES,
   addFoodToBag,
   addHouseProgress,
+  addHouseProgressById,
   addSkinToPet,
   applySkinToMonster,
   calculateDamage,
@@ -22,6 +23,7 @@ import {
   feedPetWithFood,
   generateQuestion,
   getEvolutionName,
+  getHouseRewardChoices,
   getPetStage,
   getMonsterHp,
   getStageMonster,
@@ -73,6 +75,47 @@ const EQUIPMENT_STAGES = [
   { min: 36, next: 54, name: '星光套裝', rank: '英雄裝' },
   { min: 54, next: Infinity, name: '彩虹能量甲', rank: '傳說裝' },
 ];
+
+const SUBJECT_LABELS = {
+  mandarin: '國語',
+  math: '數學',
+  english: '英語',
+  natural: '自然',
+};
+
+const HOUSE_THEMES = [
+  { id: 'candy', label: '糖果屋', accent: '#ff84b7', bonus: '心情回復快' },
+  { id: 'star', label: '星光屋', accent: '#ffd76d', bonus: '連擊感更強' },
+  { id: 'forest', label: '森林屋', accent: '#56b68b', bonus: '訂正任務穩' },
+  { id: 'ocean', label: '海風屋', accent: '#55b9e8', bonus: '英語朗讀亮' },
+];
+
+const HOUSE_THEMES_BY_ID = Object.fromEntries(HOUSE_THEMES.map((theme) => [theme.id, theme]));
+
+const ROOM_INFO = [
+  { id: 'living', label: '客廳', focus: '國語閱讀', need: 'sofa' },
+  { id: 'bedroom', label: '臥室', focus: '英語跟讀', need: 'bed' },
+  { id: 'kitchen', label: '廚房', focus: '數學換算', need: 'kitchen' },
+  { id: 'bathroom', label: '浴室', focus: '自然安全', need: 'toilet' },
+];
+
+const ROOM_INFO_BY_ID = Object.fromEntries(ROOM_INFO.map((room) => [room.id, room]));
+
+const PET_SPECIALTIES = {
+  mossbit: { subject: 'mandarin', label: '語文小老師', reward: '國語答對多 2 點' },
+  flarelume: { subject: 'english', label: '英語朗讀員', reward: '英語答對多 2 點' },
+  tidetot: { subject: 'math', label: '百分率助手', reward: '數學答對多 2 點' },
+  quartzowl: { subject: 'natural', label: '自然觀察員', reward: '自然答對多 2 點' },
+  sprigvolt: { subject: 'math', label: '單位換算師', reward: '數學答對多 2 點' },
+  inkpuff: { subject: 'english', label: '句型小隊長', reward: '英語答對多 2 點' },
+};
+
+const DAILY_MISSION_TARGETS = {
+  answered: 5,
+  corrected: 1,
+  englishSpoken: 2,
+  roomVisits: 1,
+};
 
 const SOUND_LIBRARY = {
   select: {
@@ -503,6 +546,186 @@ function toNonNegativeInteger(value) {
   return Math.max(0, Math.floor(Number(value) || 0));
 }
 
+function clampNumber(value, min, max, fallback = min) {
+  const numberValue = Number(value);
+  if (!Number.isFinite(numberValue)) return fallback;
+  return Math.max(min, Math.min(max, numberValue));
+}
+
+function makeTodayKey() {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Taipei',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
+}
+
+function normalizePetMood(value) {
+  return Math.round(clampNumber(value, 0, 100, 72));
+}
+
+function getMoodLabel(value) {
+  const mood = normalizePetMood(value);
+  if (mood >= 86) return '超開心';
+  if (mood >= 68) return '期待答題';
+  if (mood >= 44) return '需要鼓勵';
+  return '想被安慰';
+}
+
+function normalizeHouseTheme(themeId) {
+  return HOUSE_THEMES_BY_ID[themeId] ? themeId : HOUSE_THEMES[0].id;
+}
+
+function normalizeRoomVisits(rawVisits = {}) {
+  return ROOM_INFO.reduce((visits, room) => {
+    visits[room.id] = toNonNegativeInteger(rawVisits?.[room.id]);
+    return visits;
+  }, {});
+}
+
+function normalizeDailyMissions(rawDaily = {}) {
+  const today = makeTodayKey();
+  if (rawDaily?.date !== today) {
+    return {
+      date: today,
+      answered: 0,
+      corrected: 0,
+      englishSpoken: 0,
+      roomVisits: 0,
+      completed: [],
+    };
+  }
+
+  return {
+    date: today,
+    answered: toNonNegativeInteger(rawDaily.answered),
+    corrected: toNonNegativeInteger(rawDaily.corrected),
+    englishSpoken: toNonNegativeInteger(rawDaily.englishSpoken),
+    roomVisits: toNonNegativeInteger(rawDaily.roomVisits),
+    completed: Array.isArray(rawDaily.completed)
+      ? rawDaily.completed.filter((id) => Object.hasOwn(DAILY_MISSION_TARGETS, id))
+      : [],
+  };
+}
+
+function updateDailyMissions(rawDaily, increments = {}) {
+  const daily = normalizeDailyMissions(rawDaily);
+  const completed = new Set(daily.completed);
+  const nextDaily = {
+    ...daily,
+    answered: daily.answered + toNonNegativeInteger(increments.answered),
+    corrected: daily.corrected + toNonNegativeInteger(increments.corrected),
+    englishSpoken: daily.englishSpoken + toNonNegativeInteger(increments.englishSpoken),
+    roomVisits: daily.roomVisits + toNonNegativeInteger(increments.roomVisits),
+  };
+
+  Object.entries(DAILY_MISSION_TARGETS).forEach(([key, target]) => {
+    if (nextDaily[key] >= target) completed.add(key);
+  });
+
+  return {
+    ...nextDaily,
+    completed: [...completed],
+  };
+}
+
+function cleanQuestionDomain(question = {}) {
+  return String(question.originalDomain || question.domain || '綜合練習').replace(/^錯題複習 · /, '').trim() || '綜合練習';
+}
+
+function getQuestionWeakKey(question = {}) {
+  return `${question.subject || 'mixed'}::${cleanQuestionDomain(question)}`;
+}
+
+function getQuestionWeakLabel(question = {}) {
+  const subjectLabel = SUBJECT_LABELS[question.subject] || '綜合';
+  return `${subjectLabel} · ${cleanQuestionDomain(question)}`;
+}
+
+function normalizeWeakSpots(rawSpots = {}) {
+  if (!rawSpots || typeof rawSpots !== 'object') return {};
+  return Object.entries(rawSpots).reduce((spots, [key, value]) => {
+    if (!value || typeof value !== 'object') return spots;
+    const cleanKey = String(value.key || key || '').slice(0, 90);
+    if (!cleanKey) return spots;
+    spots[cleanKey] = {
+      key: cleanKey,
+      label: String(value.label || cleanKey).slice(0, 42),
+      subject: value.subject || cleanKey.split('::')[0] || 'mixed',
+      wrong: toNonNegativeInteger(value.wrong),
+      correct: toNonNegativeInteger(value.correct),
+      repaired: toNonNegativeInteger(value.repaired),
+      updatedAt: value.updatedAt || makeTimestamp(),
+    };
+    return spots;
+  }, {});
+}
+
+function updateWeakSpots(rawSpots, question, outcome = 'wrong') {
+  const spots = normalizeWeakSpots(rawSpots);
+  const key = getQuestionWeakKey(question);
+  const current = spots[key] || {
+    key,
+    label: getQuestionWeakLabel(question),
+    subject: question.subject || 'mixed',
+    wrong: 0,
+    correct: 0,
+    repaired: 0,
+    updatedAt: makeTimestamp(),
+  };
+
+  spots[key] = {
+    ...current,
+    wrong: current.wrong + (outcome === 'wrong' ? 1 : 0),
+    correct: current.correct + (outcome === 'correct' || outcome === 'repaired' ? 1 : 0),
+    repaired: current.repaired + (outcome === 'repaired' ? 1 : 0),
+    updatedAt: makeTimestamp(),
+  };
+  return spots;
+}
+
+function normalizeRepairQuests(rawQuests = []) {
+  if (!Array.isArray(rawQuests)) return [];
+  return rawQuests
+    .map((quest) => ({
+      key: String(quest?.key || '').slice(0, 90),
+      label: String(quest?.label || '').slice(0, 42),
+      subject: quest?.subject || 'mixed',
+      misses: toNonNegativeInteger(quest?.misses || 1),
+      createdAt: quest?.createdAt || makeTimestamp(),
+    }))
+    .filter((quest) => quest.key && quest.label)
+    .slice(0, 5);
+}
+
+function addRepairQuest(rawQuests, question) {
+  const quests = normalizeRepairQuests(rawQuests);
+  const key = getQuestionWeakKey(question);
+  const existing = quests.find((quest) => quest.key === key);
+  const nextQuest = {
+    key,
+    label: getQuestionWeakLabel(question),
+    subject: question.subject || 'mixed',
+    misses: (existing?.misses || 0) + 1,
+    createdAt: existing?.createdAt || makeTimestamp(),
+  };
+  return [nextQuest, ...quests.filter((quest) => quest.key !== key)].slice(0, 5);
+}
+
+function resolveRepairQuest(rawQuests, question) {
+  const key = getQuestionWeakKey(question);
+  return normalizeRepairQuests(rawQuests).filter((quest) => quest.key !== key);
+}
+
+function getPetSpecialty(monsterId) {
+  return PET_SPECIALTIES[monsterId] || null;
+}
+
 function getEquipmentStage(power = 0) {
   const safePower = toNonNegativeInteger(power);
   return EQUIPMENT_STAGES.find((stage) => safePower >= stage.min && safePower < stage.next) || EQUIPMENT_STAGES[EQUIPMENT_STAGES.length - 1];
@@ -617,7 +840,13 @@ function makeEmptyProfile(account) {
     petDex: {},
     foodBag: {},
     house: normalizeHouse(),
+    houseTheme: HOUSE_THEMES[0].id,
     shop: normalizeShop(),
+    petMood: 72,
+    dailyMissions: normalizeDailyMissions(),
+    weakSpots: {},
+    repairQuests: [],
+    roomVisits: normalizeRoomVisits(),
     mapProgress: {},
     sessions: 0,
     updatedAt: makeTimestamp(),
@@ -640,7 +869,13 @@ function normalizeProfile(parsed, account) {
     petDex: normalizePetDex(parsed?.petDex, collection),
     foodBag: normalizeFoodBag(parsed?.foodBag),
     house: normalizeHouse(parsed?.house),
+    houseTheme: normalizeHouseTheme(parsed?.houseTheme),
     shop: normalizeShop(parsed?.shop),
+    petMood: normalizePetMood(parsed?.petMood),
+    dailyMissions: normalizeDailyMissions(parsed?.dailyMissions),
+    weakSpots: normalizeWeakSpots(parsed?.weakSpots),
+    repairQuests: normalizeRepairQuests(parsed?.repairQuests),
+    roomVisits: normalizeRoomVisits(parsed?.roomVisits),
     mapProgress: normalizeMapProgress(parsed?.mapProgress),
     sessions: Number(parsed?.sessions) || 0,
     updatedAt: parsed?.updatedAt || empty.updatedAt,
@@ -1418,6 +1653,209 @@ function HouseProgressCard({ house }) {
   );
 }
 
+function MoodCard({ mood }) {
+  const safeMood = normalizePetMood(mood);
+  return (
+    <div className="mood-card" aria-label="寵物心情">
+      <div className="mission-head">
+        <span>寵物心情</span>
+        <strong>{getMoodLabel(safeMood)}</strong>
+      </div>
+      <div className="meter mood-meter" aria-label="心情值">
+        <span style={{ width: `${safeMood}%` }} />
+      </div>
+      <p>{safeMood >= 68 ? '答對、訂正、餵食和拜訪房間都會讓寵物更親近。' : '先答對一題或餵點心，寵物會很快恢復精神。'}</p>
+    </div>
+  );
+}
+
+function DailyQuestCard({ dailyMissions }) {
+  const daily = normalizeDailyMissions(dailyMissions);
+  const quests = [
+    { id: 'answered', label: '答對題目', value: daily.answered, target: DAILY_MISSION_TARGETS.answered },
+    { id: 'corrected', label: '訂正錯題', value: daily.corrected, target: DAILY_MISSION_TARGETS.corrected },
+    { id: 'englishSpoken', label: '英語跟讀', value: daily.englishSpoken, target: DAILY_MISSION_TARGETS.englishSpoken },
+    { id: 'roomVisits', label: '拜訪房間', value: daily.roomVisits, target: DAILY_MISSION_TARGETS.roomVisits },
+  ];
+
+  return (
+    <div className="daily-quest-card" aria-label="每日任務">
+      <div className="mission-head">
+        <span>每日任務</span>
+        <strong>{daily.completed.length}/4</strong>
+      </div>
+      <div className="quest-lines">
+        {quests.map((quest) => {
+          const done = quest.value >= quest.target;
+          return (
+            <div key={quest.id} className={done ? 'done' : ''}>
+              <span>{quest.label}</span>
+              <strong>{Math.min(quest.value, quest.target)}/{quest.target}</strong>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function WeaknessMapCard({ weakSpots }) {
+  const spots = Object.values(normalizeWeakSpots(weakSpots))
+    .sort((a, b) => (b.wrong - b.repaired) - (a.wrong - a.repaired) || b.wrong - a.wrong)
+    .slice(0, 3);
+
+  return (
+    <div className="weakness-card" aria-label="弱點地圖">
+      <div className="mission-head">
+        <span>弱點修復</span>
+        <strong>{spots.length ? '追蹤中' : '很穩'}</strong>
+      </div>
+      {spots.length ? (
+        <div className="weakness-list">
+          {spots.map((spot) => (
+            <div key={spot.key}>
+              <span>{spot.label}</span>
+              <strong>{spot.repaired}/{spot.wrong}</strong>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p>答錯後會自動生成修復任務，訂正答對才會消失。</p>
+      )}
+    </div>
+  );
+}
+
+function RepairQuestCard({ quests }) {
+  const pending = normalizeRepairQuests(quests);
+  return (
+    <div className="repair-card" aria-label="錯題修復任務">
+      <div className="mission-head">
+        <span>修復任務</span>
+        <strong>{pending.length}</strong>
+      </div>
+      {pending.length ? (
+        <div className="repair-list">
+          {pending.map((quest) => (
+            <div key={quest.key}>
+              <span>{quest.label}</span>
+              <strong>改到會</strong>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p>目前沒有卡住的題型，可以往下一關推進。</p>
+      )}
+    </div>
+  );
+}
+
+function SpecialtyCard({ selectedPet }) {
+  const specialty = getPetSpecialty(selectedPet?.id);
+  return (
+    <div className="specialty-card" aria-label="寵物專長">
+      <div className="mission-head">
+        <span>帶隊專長</span>
+        <strong>{selectedPet ? selectedPet.displayName : '待收服'}</strong>
+      </div>
+      {specialty ? (
+        <p>{specialty.label} · {SUBJECT_LABELS[specialty.subject]}答對多 2 點。</p>
+      ) : (
+        <p>選一隻已收服寵物帶隊，牠會在擅長科目幫忙。</p>
+      )}
+    </div>
+  );
+}
+
+function RoomExplorerCard({ roomVisits, house, onVisitRoom }) {
+  const visits = normalizeRoomVisits(roomVisits);
+  const built = new Set(normalizeHouse(house).built);
+  return (
+    <div className="room-card" aria-label="房間互動">
+      <div className="mission-head">
+        <span>房間拜訪</span>
+        <strong>{Object.values(visits).reduce((sum, value) => sum + value, 0)}</strong>
+      </div>
+      <div className="room-grid">
+        {ROOM_INFO.map((room) => {
+          const ready = built.has(room.need);
+          return (
+            <button key={room.id} type="button" onClick={() => onVisitRoom(room.id)} className={ready ? 'ready' : ''}>
+              <strong>{room.label}</strong>
+              <span>{ready ? room.focus : '等建材'}</span>
+              <em>{visits[room.id]}</em>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ThemePickerCard({ theme, onThemeChange }) {
+  const activeTheme = HOUSE_THEMES_BY_ID[normalizeHouseTheme(theme)];
+  return (
+    <div className="theme-card" aria-label="房屋主題">
+      <div className="mission-head">
+        <span>房屋主題</span>
+        <strong>{activeTheme.label}</strong>
+      </div>
+      <div className="theme-swatches">
+        {HOUSE_THEMES.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={item.id === activeTheme.id ? 'active' : ''}
+            onClick={() => onThemeChange(item.id)}
+            style={{ '--theme-accent': item.accent }}
+            aria-label={`切換到${item.label}`}
+          >
+            <span />
+            <strong>{item.label}</strong>
+          </button>
+        ))}
+      </div>
+      <p>{activeTheme.bonus}</p>
+    </div>
+  );
+}
+
+function BossPrepCard({ run }) {
+  const bossSoon = run.waveInStage >= 4;
+  return (
+    <div className={bossSoon ? 'boss-prep-card active' : 'boss-prep-card'} aria-label="Boss 準備">
+      <div className="mission-head">
+        <span>考試 Boss</span>
+        <strong>{bossSoon ? '準備中' : `${5 - run.waveInStage} 波後`}</strong>
+      </div>
+      <p>{bossSoon ? '下一波會把本關題型混在一起，先修掉錯題再挑戰。' : '每關第 5 波是期末 Boss，答對可推進地圖。'}</p>
+    </div>
+  );
+}
+
+function ParentReportCard({ profile, run }) {
+  const weakCount = Object.values(normalizeWeakSpots(profile.weakSpots)).filter((spot) => spot.wrong > spot.repaired).length;
+  return (
+    <div className="parent-report-card" aria-label="家長摘要">
+      <div className="mission-head">
+        <span>家長摘要</span>
+        <strong>{GRADES[run.grade].label}</strong>
+      </div>
+      <div className="parent-report-grid">
+        <div>
+          <span>總點數</span>
+          <strong>{toNonNegativeInteger(profile.totalLearningPoints)}</strong>
+        </div>
+        <div>
+          <span>待修復</span>
+          <strong>{weakCount}</strong>
+        </div>
+      </div>
+      <p>今天主攻：{SUBJECT_LABELS[run.question.subject] || '綜合'} · {cleanQuestionDomain(run.question)}</p>
+    </div>
+  );
+}
+
 const HOUSE_PET_SPOTS = [
   { x: '30%', y: '70%', scale: 0.94, depth: 12, delay: '-0.4s', walk: '8.8s', dx: '18px', dy: '-7px' },
   { x: '68%', y: '68%', scale: 0.88, depth: 13, delay: '-2.1s', walk: '9.6s', dx: '-16px', dy: '-6px' },
@@ -1491,6 +1929,7 @@ function HousePetButton({
 
 function HouseVilla({
   house,
+  houseTheme = 'candy',
   monster,
   hpRatio = 1,
   boss = false,
@@ -1503,8 +1942,10 @@ function HouseVilla({
   speechState = 'idle',
   onSelectPet,
   onPetInteract,
+  onVisitRoom,
 }) {
   const safeHouse = normalizeHouse(house);
+  const activeTheme = normalizeHouseTheme(houseTheme);
   const built = new Set(safeHouse.built);
   const has = (id) => built.has(id);
   const newestId = safeHouse.built[safeHouse.built.length - 1] || null;
@@ -1535,7 +1976,7 @@ function HouseVilla({
   ];
 
   return (
-    <div className="villa-stage" aria-label="方塊別墅">
+    <div className={`villa-stage theme-${activeTheme}`} aria-label="方塊別墅">
       <div className="villa-progress-badge">
         <span>方塊別墅</span>
         <strong>{safeHouse.complete ? `完成 +${safeHouse.renovation}` : `${safeHouse.builtCount}/${safeHouse.total}`}</strong>
@@ -1646,6 +2087,19 @@ function HouseVilla({
               </i>
             ) : null}
           </span>
+          <div className="room-hotspots" aria-label="拜訪房間">
+            {ROOM_INFO.map((room) => (
+              <button
+                key={room.id}
+                type="button"
+                className={`room-hotspot ${room.id}`}
+                onClick={() => onVisitRoom?.(room.id)}
+                aria-label={`拜訪${room.label}`}
+              >
+                {room.label}
+              </button>
+            ))}
+          </div>
           <div className="villa-house-pets" aria-label="屋內寵物">
             {occupants.map((occupant, index) => {
               const selected = occupant.id === selectedPetId;
@@ -1678,9 +2132,19 @@ function HouseVilla({
   );
 }
 
-function ProgressRail({ run, profile, ownedPets, selectedPetId, onSelectPet, onFeedFood, onBuyShopItem, onEquipShopItem }) {
+function ProgressRail({
+  run,
+  profile,
+  ownedPets,
+  selectedPetId,
+  onSelectPet,
+  onFeedFood,
+  onBuyShopItem,
+  onEquipShopItem,
+  onVisitRoom,
+  onThemeChange,
+}) {
   const summary = summarizeRun(run);
-  const missionProgress = Math.min(5, run.correctCount);
   const outlineSubject = run.mode === 'mixed' ? run.question.subject : run.mode;
   const outline = CURRICULUM_OUTLINE[run.grade]?.[outlineSubject] || [];
   const selectedPet = ownedPets.find((entry) => entry.id === selectedPetId) || ownedPets[0] || null;
@@ -1708,16 +2172,8 @@ function ProgressRail({ run, profile, ownedPets, selectedPetId, onSelectPet, onF
           ))}
         </div>
       </div>
-      <div className="mission">
-        <div className="mission-head">
-          <span>每日任務</span>
-          <strong>{missionProgress}/5</strong>
-        </div>
-        <div className="meter" aria-label="每日任務進度">
-          <span style={{ width: `${(missionProgress / 5) * 100}%` }} />
-        </div>
-        <p>連續答對 5 題，收集一枚星晶。</p>
-      </div>
+      <MoodCard mood={profile.petMood} />
+      <DailyQuestCard dailyMissions={profile.dailyMissions} />
       <div className="mini-stats">
         <div>
           <span>答題</span>
@@ -1746,6 +2202,10 @@ function ProgressRail({ run, profile, ownedPets, selectedPetId, onSelectPet, onF
           <strong>{run.reviewQueue?.length || 0}</strong>
         </div>
       </div>
+      <BossPrepCard run={run} />
+      <SpecialtyCard selectedPet={selectedPet} />
+      <WeaknessMapCard weakSpots={profile.weakSpots} />
+      <RepairQuestCard quests={profile.repairQuests} />
       {profile.role === 'boy' ? (
         <EquipmentCard profile={profile} />
       ) : (
@@ -1756,10 +2216,13 @@ function ProgressRail({ run, profile, ownedPets, selectedPetId, onSelectPet, onF
           onEquipItem={onEquipShopItem}
         />
       )}
+      <ThemePickerCard theme={profile.houseTheme} onThemeChange={onThemeChange} />
       <HouseProgressCard house={run.house} />
+      <RoomExplorerCard roomVisits={profile.roomVisits} house={run.house} onVisitRoom={onVisitRoom} />
       <EggCard egg={run.currentEgg} />
       <FoodPack foodBag={run.foodBag} selectedPet={selectedPet} onFeedFood={onFeedFood} />
       <PetDexPanel ownedPets={ownedPets} selectedPetId={selectedPetId} onSelectPet={onSelectPet} />
+      <ParentReportCard profile={profile} run={run} />
       <div className="run-log">
         {run.log.slice(0, 4).map((entry, index) => (
           <div key={`${entry}-${index}`}>{entry}</div>
@@ -1866,7 +2329,21 @@ function PetSwarm({ ownedPets, selectedPetId, petAction, speechState, onSelectPe
   );
 }
 
-function Arena({ run, ownedPets, selectedPetId, lastImpact, petAction, burst, speechState, damagePop, captureFx, onSelectPet, onPetInteract }) {
+function Arena({
+  run,
+  ownedPets,
+  selectedPetId,
+  houseTheme,
+  lastImpact,
+  petAction,
+  burst,
+  speechState,
+  damagePop,
+  captureFx,
+  onSelectPet,
+  onPetInteract,
+  onVisitRoom,
+}) {
   const hpRatio = Math.max(0, run.monsterHp / run.monsterMaxHp);
   const boss = isBossWave(run.waveInStage);
   const activePet = run.petDex?.[run.monster.id];
@@ -1917,6 +2394,7 @@ function Arena({ run, ownedPets, selectedPetId, lastImpact, petAction, burst, sp
       </div>
       <HouseVilla
         house={run.house}
+        houseTheme={houseTheme}
         monster={run.monster}
         hpRatio={hpRatio}
         boss={boss}
@@ -1929,6 +2407,7 @@ function Arena({ run, ownedPets, selectedPetId, lastImpact, petAction, burst, sp
         speechState={speechState}
         onSelectPet={onSelectPet}
         onPetInteract={onPetInteract}
+        onVisitRoom={onVisitRoom}
       />
       <div className="monster-status opponent-status">
         <div>
@@ -2004,6 +2483,35 @@ function SpeechControls({
   );
 }
 
+function RewardChoicePanel({ choices = [], onChoose }) {
+  if (!choices.length) return null;
+
+  const getReason = (item) => {
+    if (item.kind === 'structure') return '房屋結構';
+    if (item.kind === 'furniture') return '家具';
+    if (item.kind === 'bathroom') return '設備';
+    if (item.kind === 'outdoor') return '庭院';
+    return '裝飾';
+  };
+
+  return (
+    <div className="reward-choice-panel" aria-label="選擇建材獎勵">
+      <div className="reward-choice-head">
+        <span>答對獎勵</span>
+        <strong>選 1 個方塊</strong>
+      </div>
+      <div className="reward-choice-grid">
+        {choices.map((item) => (
+          <button key={item.id} type="button" onClick={() => onChoose(item.id)}>
+            <span>{getReason(item)}</span>
+            <strong>{item.label}</strong>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function QuizPanel({
   run,
   speechEnabled,
@@ -2013,10 +2521,12 @@ function QuizPanel({
   onSpeakChoices,
   onSpeakPractice,
   onAnswer,
+  onChooseHouseReward,
   onNext,
   onReset,
 }) {
   const isAnswered = Boolean(run.answered);
+  const hasPendingReward = Boolean(run.pendingHouseRewards?.length);
   return (
     <aside className="quiz-panel" aria-label="題目">
       <div className="question-kind">
@@ -2067,12 +2577,13 @@ function QuizPanel({
           </>
         )}
       </div>
+      <RewardChoicePanel choices={run.pendingHouseRewards || []} onChoose={onChooseHouseReward} />
       <div className="quiz-actions">
         <button type="button" className="secondary-action" onClick={onReset}>
           回地圖
         </button>
-        <button type="button" className="primary-action" onClick={onNext} disabled={!isAnswered}>
-          下一題
+        <button type="button" className="primary-action" onClick={onNext} disabled={!isAnswered || hasPendingReward}>
+          {hasPendingReward ? '先選建材' : '下一題'}
         </button>
       </div>
     </aside>
@@ -2539,6 +3050,18 @@ export default function App() {
     return speakEnglish(run.question.practiceText || run.question.answer, { force: true, rate: 0.78 });
   }, [run.question.answer, run.question.practiceText, speakEnglish]);
 
+  const practiceEnglishAnswer = () => {
+    if (run.question.subject === 'english') {
+      const nextDailyMissions = updateDailyMissions(profile.dailyMissions, { englishSpoken: 1 });
+      const nextProfile = saveProfile(activeAccount, {
+        ...profile,
+        dailyMissions: nextDailyMissions,
+      });
+      setProfile(nextProfile);
+    }
+    return speakCurrentPractice();
+  };
+
   const saveRunProfile = (nextRun, stageStarsUpdate = null, profilePatch = {}) => {
     const collection = [...new Set([...profile.collection, ...nextRun.collection])];
     const mapProgress = { ...profile.mapProgress };
@@ -2562,7 +3085,13 @@ export default function App() {
       petDex: normalizePetDex({ ...profile.petDex, ...nextRun.petDex }, collection),
       foodBag: normalizeFoodBag(nextRun.foodBag),
       house: normalizeHouse(nextRun.house || profile.house),
+      houseTheme: normalizeHouseTheme(profilePatch.houseTheme ?? profile.houseTheme),
       shop: normalizeShop(profilePatch.shop || profile.shop),
+      petMood: normalizePetMood(profilePatch.petMood ?? profile.petMood),
+      dailyMissions: normalizeDailyMissions(profilePatch.dailyMissions ?? profile.dailyMissions),
+      weakSpots: normalizeWeakSpots(profilePatch.weakSpots ?? profile.weakSpots),
+      repairQuests: normalizeRepairQuests(profilePatch.repairQuests ?? profile.repairQuests),
+      roomVisits: normalizeRoomVisits(profilePatch.roomVisits ?? profile.roomVisits),
       mapProgress: normalizeMapProgress(mapProgress),
       sessions: profile.sessions + (nextRun.phase === 'playing' ? 0 : 1),
     };
@@ -2693,6 +3222,16 @@ export default function App() {
       const nextReviewQueue = shouldQueueReview
         ? [...currentQueue, makeReviewItem(run.question)].slice(-6)
         : currentQueue;
+      const nextWeakSpots = updateWeakSpots(profile.weakSpots, run.question, 'wrong');
+      const nextRepairQuests = addRepairQuest(profile.repairQuests, run.question);
+      const nextPetMood = normalizePetMood(profile.petMood - 5);
+      const savedProfile = saveProfile(activeAccount, {
+        ...profile,
+        petMood: nextPetMood,
+        weakSpots: nextWeakSpots,
+        repairQuests: nextRepairQuests,
+      });
+      setProfile(savedProfile);
       setRun({
         ...run,
         hearts: Math.max(1, run.hearts - 1),
@@ -2706,9 +3245,10 @@ export default function App() {
         feedback: {
           kind: 'bad',
           title: '再試一次',
-          detail: `${run.question.tip} 這題要改到答對，寵物才會靠近。`,
+          detail: `${run.question.tip} 已加入修復任務：${cleanQuestionDomain(run.question)}。這題要改到答對，寵物才會靠近。`,
         },
         log: [
+          `修復任務：${cleanQuestionDomain(run.question)}`,
           shouldQueueReview ? `回鍋排程：${run.question.domain}` : `訂正中：${choice}`,
           ...run.log,
         ].slice(0, 6),
@@ -2724,11 +3264,25 @@ export default function App() {
     const nextStreak = correct ? run.streak + 1 : 0;
     const scoreGain = correct ? Math.max(35, 90 + run.level * 12 + run.streak * 18 - run.wrongChoices.length * 18) : 0;
     const activeRole = normalizeRole(profile.role || activeAccount.role);
-    const learningPointGain = 10 + Math.min(10, nextStreak * 2) + (run.wrongChoices.length === 0 ? 3 : 0);
+    const specialtyPetId = selectedPetId || getStrongestPet(run.petDex)?.id || getStrongestPet(profile.petDex)?.id || null;
+    const specialty = getPetSpecialty(specialtyPetId);
+    const specialtyMatch = Boolean(specialty && specialty.subject === run.question.subject);
+    const correctedThisTurn = run.wrongChoices.length > 0 || run.question.review;
+    const learningPointGain = 10 + Math.min(10, nextStreak * 2) + (run.wrongChoices.length === 0 ? 3 : 0) + (specialtyMatch ? 2 : 0);
     const equipmentGain = activeRole === 'boy' ? 1 + (nextStreak >= 3 ? 1 : 0) : 0;
     const nextLearningPoints = toNonNegativeInteger(profile.learningPoints) + learningPointGain;
     const nextTotalLearningPoints = toNonNegativeInteger(profile.totalLearningPoints) + learningPointGain;
     const nextEquipmentPower = toNonNegativeInteger(profile.equipmentPower) + equipmentGain;
+    const nextDailyMissions = updateDailyMissions(profile.dailyMissions, {
+      answered: 1,
+      corrected: correctedThisTurn ? 1 : 0,
+      englishSpoken: run.question.subject === 'english' ? 1 : 0,
+    });
+    const nextWeakSpots = updateWeakSpots(profile.weakSpots, run.question, correctedThisTurn ? 'repaired' : 'correct');
+    const nextRepairQuests = correctedThisTurn
+      ? resolveRepairQuest(profile.repairQuests, run.question)
+      : normalizeRepairQuests(profile.repairQuests);
+    const nextPetMood = normalizePetMood(profile.petMood + (correctedThisTurn ? 6 : 4) + (nextStreak >= 3 ? 2 : 0));
     const nextCollection = nextHp === 0 ? [...new Set([...run.collection, run.monster.id])] : run.collection;
     const alreadyOwned = run.collection.includes(run.monster.id) || profile.collection.includes(run.monster.id);
     const petXpGain = nextHp === 0 ? (run.retrying ? 3 : 4) : alreadyOwned ? 1 : 0;
@@ -2742,7 +3296,8 @@ export default function App() {
       retrying: run.retrying,
     });
     const nextFoodBag = addFoodToBag(run.foodBag, rewardFood.id, 1);
-    const houseResult = addHouseProgress(run.house);
+    const houseChoices = getHouseRewardChoices(run.house, 3);
+    const autoHouseResult = houseChoices.length === 0 ? addHouseProgress(run.house) : null;
 
     let nextEgg = run.currentEgg ? warmEgg(run.currentEgg, 1) : null;
     let hatchResult = null;
@@ -2772,8 +3327,13 @@ export default function App() {
     const growthText = activePetStage
       ? ` 寵物成長：${activePetStage.title} Lv.${activePetStage.level}，裝飾：${activePet.accessory.label}。`
       : '';
-    const houseText = ` 放置方塊：${houseResult.reward.label}。`;
+    const houseText = houseChoices.length
+      ? ` 建材候選：${houseChoices.map((item) => item.label).join('、')}，先選 1 個放進房子。`
+      : ` 豪宅升級：${autoHouseResult?.reward.label || '完成'}。`;
     const pointText = ` 學習點數 +${learningPointGain}。`;
+    const specialtyText = specialtyMatch
+      ? ` ${PET_SPECIALTIES[specialtyPetId]?.label || '寵物專長'}發動，多拿 2 點。`
+      : '';
     const roleRewardText = activeRole === 'boy'
       ? ` 裝備強化 +${equipmentGain}，戰力 ${nextEquipmentPower}。`
       : ' 商店點數可以換寵物衣服和頭飾。';
@@ -2787,7 +3347,7 @@ export default function App() {
     showDamagePop({ value: damage, crit: nextStreak >= 3 });
     if (nextHp === 0) showCaptureFx();
     void playSound(nextHp === 0 ? 'catch' : nextStreak > 0 && nextStreak % 3 === 0 ? 'combo' : 'good');
-    window.setTimeout(() => void playSound('build'), 120);
+    if (autoHouseResult) window.setTimeout(() => void playSound('build'), 120);
     if (rareFood) window.setTimeout(() => void playSound('rare'), 210);
     if (leveledUp) window.setTimeout(() => void playSound('level'), 360);
     if (hatchResult) window.setTimeout(() => void playSound('rare'), 520);
@@ -2832,8 +3392,8 @@ export default function App() {
           : rareFood
             ? '高級點心'
             : nextStreak >= 3
-              ? `蓋好 ${houseResult.reward.label}`
-              : houseResult.reward.label,
+              ? '選一塊建材'
+              : houseChoices[0]?.label || autoHouseResult?.reward.label || '建造獎勵',
       food: rareFood ? rewardFood : null,
     }, rareFood || nextHp === 0 || leveledUp ? 1180 : 900);
     if (nextHp === 0) {
@@ -2861,7 +3421,8 @@ export default function App() {
       collection: collectionAfterHatch,
       petDex: petDexWithSkins,
       foodBag: nextFoodBag,
-      house: houseResult.house,
+      house: autoHouseResult?.house || run.house,
+      pendingHouseRewards: houseChoices,
       currentEgg: nextEgg,
       phase: run.phase,
       feedback: {
@@ -2873,11 +3434,13 @@ export default function App() {
             : run.wrongChoices.length > 0
               ? `訂正成功 +${damage}`
               : `命中 +${damage}`,
-        detail: `${run.question.explanation}${houseText}${pointText}${roleRewardText}${growthText}${foodText}${eggText}`,
+        detail: `${run.question.explanation}${houseText}${pointText}${specialtyText}${roleRewardText}${growthText}${foodText}${eggText}`,
       },
       log: [
         `學習點數 +${learningPointGain}${equipmentGain > 0 ? `｜裝備 +${equipmentGain}` : ''}`,
-        `放置方塊：${houseResult.reward.label}`,
+        houseChoices.length
+          ? `可選建材：${houseChoices.map((item) => item.label).join('、')}`
+          : `豪宅升級：${autoHouseResult?.reward.label || '完成'}`,
         hatchResult
           ? `孵化：${hatchResult.skin.label}色${MONSTERS.find((item) => item.id === hatchResult.monsterId)?.name || '夥伴'}`
           : nextHp === 0
@@ -2895,12 +3458,44 @@ export default function App() {
       learningPoints: nextLearningPoints,
       totalLearningPoints: nextTotalLearningPoints,
       equipmentPower: nextEquipmentPower,
+      petMood: nextPetMood,
+      dailyMissions: nextDailyMissions,
+      weakSpots: nextWeakSpots,
+      repairQuests: nextRepairQuests,
     });
     if (nextRun.question.subject === 'english') {
       window.setTimeout(() => {
         void speakEnglish(nextRun.question.practiceText || nextRun.question.answer, { rate: 0.78 });
       }, 160);
     }
+  };
+
+  const chooseHouseReward = (itemId) => {
+    const pendingRewards = run.pendingHouseRewards || [];
+    if (!pendingRewards.length || !pendingRewards.some((item) => item.id === itemId)) return;
+
+    const result = addHouseProgressById(run.house, itemId);
+    const nextRun = {
+      ...run,
+      house: result.house,
+      pendingHouseRewards: [],
+      feedback: {
+        kind: 'good',
+        title: `放置 ${result.reward.label}`,
+        detail: '房子多了一個新方塊。完成建材後就能前進下一題，繼續把豪華別墅蓋完整。',
+      },
+      log: [
+        `放置方塊：${result.reward.label}`,
+        ...run.log,
+      ].slice(0, 6),
+    };
+    const leadPet = selectedPetId || getStrongestPet(run.petDex)?.id || null;
+
+    setRun(nextRun);
+    saveRunProfile(nextRun);
+    void playSound('build');
+    showBurst({ type: 'build', label: result.reward.label }, 980);
+    if (leadPet) showPetAction({ type: 'cheer', monsterId: leadPet }, 880);
   };
 
   const feedSelectedPet = (foodId) => {
@@ -2915,6 +3510,7 @@ export default function App() {
     const leveledUp = result.stage.level > previousStage.level;
     const evolved = result.stage.evoStage > previousStage.evoStage;
     const rareFood = result.food.tier >= 3;
+    const nextPetMood = normalizePetMood(profile.petMood + 4 + result.food.tier);
 
     if (evolved) {
       window.setTimeout(() => {
@@ -2937,7 +3533,7 @@ export default function App() {
       feedback: {
         kind: 'good',
         title: `${monster?.name || '夥伴'}吃了${result.food.label}`,
-        detail: `成長經驗 +${result.food.xp}，現在是 ${result.stage.title} Lv.${result.stage.level}。`,
+        detail: `成長經驗 +${result.food.xp}，現在是 ${result.stage.title} Lv.${result.stage.level}，心情變成${getMoodLabel(nextPetMood)}。`,
       },
       log: [
         `餵食：${result.food.label} +${result.food.xp}`,
@@ -2948,7 +3544,6 @@ export default function App() {
     void playSound(leveledUp ? 'level' : 'feed');
     if (rareFood && !leveledUp) window.setTimeout(() => void playSound('rare'), 180);
     setRun(nextRun);
-    saveRunProfile(nextRun);
     setSelectedPetId(leadPet.id);
     showBurst({
       type: leveledUp ? 'level' : rareFood ? 'rare' : 'feed',
@@ -2960,6 +3555,7 @@ export default function App() {
       monsterId: leadPet.id,
       food: result.food,
     }, 1100);
+    saveRunProfile(nextRun, null, { petMood: nextPetMood });
   };
 
   const buyShopItem = (itemId) => {
@@ -3009,6 +3605,7 @@ export default function App() {
       shop: nextShop,
       petDex: nextPetDex,
       collection,
+      petMood: normalizePetMood(profile.petMood + (targetPetId ? 2 : 1)),
     });
 
     setProfile(nextProfile);
@@ -3054,6 +3651,7 @@ export default function App() {
       shop: nextShop,
       petDex: nextPetDex,
       collection,
+      petMood: normalizePetMood(profile.petMood + 2),
     });
     const monster = MONSTERS.find((entry) => entry.id === selectedPetId);
 
@@ -3074,6 +3672,66 @@ export default function App() {
     void playSound('select');
     showBurst({ type: 'heart', label: item.label }, 900);
     showPetAction({ type: 'cheer', monsterId: selectedPetId }, 920);
+  };
+
+  const visitRoom = (roomId) => {
+    const room = ROOM_INFO_BY_ID[roomId];
+    if (!room) return;
+    const nextRoomVisits = {
+      ...normalizeRoomVisits(profile.roomVisits),
+      [room.id]: toNonNegativeInteger(profile.roomVisits?.[room.id]) + 1,
+    };
+    const nextDailyMissions = updateDailyMissions(profile.dailyMissions, { roomVisits: 1 });
+    const nextPetMood = normalizePetMood(profile.petMood + 3);
+    const nextProfile = saveProfile(activeAccount, {
+      ...profile,
+      roomVisits: nextRoomVisits,
+      dailyMissions: nextDailyMissions,
+      petMood: nextPetMood,
+    });
+    const leadPet = selectedPetId || getStrongestPet(run.petDex)?.id || null;
+
+    setProfile(nextProfile);
+    setRun((current) => ({
+      ...current,
+      feedback: {
+        kind: 'good',
+        title: `拜訪${room.label}`,
+        detail: `${room.focus}房間亮了一下，寵物心情變成${getMoodLabel(nextPetMood)}。`,
+      },
+      log: [
+        `房間：${room.label} +1`,
+        ...current.log,
+      ].slice(0, 6),
+    }));
+    void playSound('poke');
+    showBurst({ type: 'heart', label: room.label }, 850);
+    if (leadPet) showPetAction({ type: 'cheer', monsterId: leadPet }, 860);
+  };
+
+  const changeHouseTheme = (themeId) => {
+    const nextTheme = normalizeHouseTheme(themeId);
+    const theme = HOUSE_THEMES_BY_ID[nextTheme];
+    const nextProfile = saveProfile(activeAccount, {
+      ...profile,
+      houseTheme: nextTheme,
+    });
+
+    setProfile(nextProfile);
+    setRun((current) => ({
+      ...current,
+      feedback: {
+        kind: 'good',
+        title: `切換成${theme.label}`,
+        detail: `${theme.bonus}。房子主題已保存到這個帳號。`,
+      },
+      log: [
+        `主題：${theme.label}`,
+        ...current.log,
+      ].slice(0, 6),
+    }));
+    void playSound('select');
+    showBurst({ type: 'heart', label: theme.label }, 780);
   };
 
   const interactWithPet = (monsterId, source) => {
@@ -3108,6 +3766,7 @@ export default function App() {
 
   const nextQuestion = () => {
     if (!run.answered || run.phase !== 'playing') return;
+    if (run.pendingHouseRewards?.length) return;
 
     speechEngineRef.current?.cancel();
     const defeated = run.monsterHp <= 0;
@@ -3119,6 +3778,7 @@ export default function App() {
         phase: 'cleared',
         stageStars: stars,
         answered: run.answered,
+        pendingHouseRewards: [],
         feedback: null,
       };
       void playSound('level');
@@ -3164,6 +3824,7 @@ export default function App() {
       question: nextGeneratedQuestion,
       answered: null,
       wrongChoices: [],
+      pendingHouseRewards: [],
       reviewQueue: nextReviewQueue,
       retrying: false,
       feedback: null,
@@ -3283,11 +3944,14 @@ export default function App() {
           onFeedFood={feedSelectedPet}
           onBuyShopItem={buyShopItem}
           onEquipShopItem={equipShopItem}
+          onVisitRoom={visitRoom}
+          onThemeChange={changeHouseTheme}
         />
         <Arena
           run={run}
           ownedPets={ownedPets}
           selectedPetId={selectedPetId}
+          houseTheme={profile.houseTheme}
           lastImpact={lastImpact}
           petAction={petAction}
           burst={burst}
@@ -3296,6 +3960,7 @@ export default function App() {
           captureFx={captureFx}
           onSelectPet={setSelectedPetId}
           onPetInteract={interactWithPet}
+          onVisitRoom={visitRoom}
         />
         <QuizPanel
           run={run}
@@ -3311,8 +3976,9 @@ export default function App() {
           }}
           onSpeakPrompt={() => void speakCurrentPrompt({ rate: 0.86 })}
           onSpeakChoices={() => void speakCurrentChoices()}
-          onSpeakPractice={() => void speakCurrentPractice()}
+          onSpeakPractice={() => void practiceEnglishAnswer()}
           onAnswer={answerQuestion}
+          onChooseHouseReward={chooseHouseReward}
           onNext={nextQuestion}
           onReset={backToMap}
         />

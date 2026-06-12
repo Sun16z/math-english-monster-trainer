@@ -10,6 +10,7 @@ import {
   STAGES,
   addFoodToBag,
   addHouseProgress,
+  addHouseProgressById,
   addSkinToPet,
   applySkinToMonster,
   calculateDamage,
@@ -24,6 +25,7 @@ import {
   generateQuestion,
   getEvolutionName,
   getEvolutionStage,
+  getHouseRewardChoices,
   getMonsterHp,
   getPetStage,
   getMonsterForWave,
@@ -130,6 +132,23 @@ test('signature cute pets use stable original shape variants', () => {
   assert.equal(cloudPet.petShape, 'cloudPup');
   assert.ok(PET_ACCESSORIES.some((accessory) => accessory.id === 'mischiefBow'));
   assert.ok(PET_ACCESSORIES.some((accessory) => accessory.id === 'cloudBell'));
+});
+
+test('house reward choices let players pick the next building block', () => {
+  const house = normalizeHouse({ built: ['foundation', 'frontDoor'] });
+  const choices = getHouseRewardChoices(house, 3);
+  assert.deepEqual(choices.map((item) => item.id), ['windowLeft', 'windowRight', 'roof']);
+
+  const selected = addHouseProgressById(house, 'roof');
+  assert.equal(selected.reward.id, 'roof');
+  assert.deepEqual(selected.house.built, ['foundation', 'frontDoor', 'roof']);
+
+  const fallback = addHouseProgressById(house, 'missing-block');
+  assert.equal(fallback.reward.id, 'windowLeft');
+
+  const complete = addHouseProgressById({ built: HOUSE_ITEMS.map((item) => item.id), renovation: 2 }, 'roof');
+  assert.equal(complete.reward.kind, 'upgrade');
+  assert.equal(complete.house.renovation, 3);
 });
 
 test('shop wardrobe items normalize and point to valid accessories', () => {
