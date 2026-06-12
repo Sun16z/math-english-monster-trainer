@@ -3335,12 +3335,85 @@ p {
     drop-shadow(0 18px 18px rgba(32, 49, 58, 0.16));
 }
 
+.villa-house::before {
+  position: absolute;
+  right: 8%;
+  bottom: 0;
+  left: 8%;
+  z-index: 2;
+  height: 85%;
+  border: 4px solid rgba(93, 61, 36, 0.32);
+  border-radius: 2px;
+  background:
+    linear-gradient(90deg, transparent 0 49%, rgba(93, 61, 36, 0.22) 49% 51%, transparent 51%),
+    linear-gradient(180deg, transparent 0 44%, rgba(93, 61, 36, 0.24) 44% 47%, transparent 47%),
+    rgba(255, 255, 255, 0.08);
+  content: '';
+  pointer-events: none;
+}
+
+.villa-house::after {
+  position: absolute;
+  right: 11%;
+  bottom: 6%;
+  left: 11%;
+  z-index: 4;
+  height: 73%;
+  background:
+    linear-gradient(90deg, transparent 0 49.2%, rgba(111, 74, 34, 0.3) 49.2% 50.8%, transparent 50.8%),
+    linear-gradient(180deg, transparent 0 48%, rgba(111, 74, 34, 0.28) 48% 50%, transparent 50%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(82, 66, 43, 0.09) 1px, transparent 1px);
+  background-size: auto, auto, 18px 18px, 18px 18px;
+  content: '';
+  opacity: 0.86;
+  pointer-events: none;
+}
+
 .villa-piece,
 .villa-room,
 .villa-outdoor,
 .furniture {
   position: absolute;
   display: block;
+}
+
+.villa-piece {
+  z-index: 5;
+}
+
+.villa-object-label,
+.villa-room-name {
+  position: absolute;
+  z-index: 9;
+  display: block;
+  max-width: 70px;
+  padding: 2px 5px;
+  border: 1px solid rgba(111, 74, 34, 0.24);
+  border-radius: 3px;
+  background: rgba(255, 253, 248, 0.94);
+  box-shadow: 0 4px 8px rgba(32, 49, 58, 0.1);
+  color: #6f4a22;
+  font-size: 0.58rem;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.villa-object-label {
+  left: 50%;
+  bottom: calc(100% + 3px);
+  transform: translateX(-50%);
+}
+
+.villa-room-name {
+  top: 4px;
+  left: 5px;
+  background: rgba(32, 49, 58, 0.76);
+  color: #fffdf8;
 }
 
 .villa-piece.new,
@@ -3371,6 +3444,7 @@ p {
   box-shadow:
     inset -8px -8px 0 rgba(82, 66, 43, 0.16),
     inset 7px 7px 0 rgba(255, 255, 255, 0.28);
+  z-index: 1;
 }
 
 .villa-house:not(.has-foundation) .villa-piece.base {
@@ -3394,6 +3468,10 @@ p {
     linear-gradient(180deg, rgba(82, 66, 43, 0.16) 1px, transparent 1px),
     linear-gradient(180deg, #e6c37d, #c58f50);
   background-size: 22px 22px, 22px 22px, auto;
+  box-shadow:
+    inset -7px -7px 0 rgba(82, 66, 43, 0.14),
+    inset 6px 6px 0 rgba(255, 255, 255, 0.22);
+  z-index: 1;
 }
 
 .villa-piece.roof {
@@ -3408,6 +3486,7 @@ p {
     linear-gradient(135deg, #d36d55, #9f4a3e);
   background-size: 20px 20px, 20px 20px, auto;
   box-shadow: inset -8px -8px 0 rgba(82, 66, 43, 0.22);
+  z-index: 6;
 }
 
 .villa-piece.solar-roof {
@@ -3419,6 +3498,7 @@ p {
   border-radius: 1px;
   background: repeating-linear-gradient(90deg, #7ecbff 0 8px, #ffd76d 8px 14px);
   transform: rotate(8deg);
+  z-index: 7;
 }
 
 .villa-piece.chimney {
@@ -3432,6 +3512,7 @@ p {
     linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px),
     linear-gradient(180deg, #9b8a78, #6b5c4d);
   background-size: 11px 100%, auto;
+  z-index: 4;
 }
 
 .villa-piece.party-lights {
@@ -3442,19 +3523,26 @@ p {
   border-radius: 1px;
   background: repeating-linear-gradient(90deg, #ffd76d 0 9px, #d36d55 9px 18px, #69c7d9 18px 27px);
   box-shadow: 0 0 16px rgba(255, 215, 109, 0.55);
+  z-index: 7;
 }
 
 .villa-piece.door {
   bottom: 0;
   left: 44%;
-  width: 13%;
-  height: 31%;
-  border: 4px solid #5d3d24;
+  width: 14%;
+  height: 34%;
+  border: 5px solid #5d3d24;
   border-radius: 1px 1px 0 0;
   background:
+    linear-gradient(90deg, transparent 0 46%, rgba(62, 38, 21, 0.32) 46% 54%, transparent 54%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0 11%, transparent 11%),
     linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px),
-    linear-gradient(180deg, #a86d38, #6b421f);
-  background-size: 10px 100%, auto;
+    linear-gradient(180deg, #b8793f, #6b421f);
+  background-size: auto, auto, 10px 100%, auto;
+  box-shadow:
+    inset -5px -5px 0 rgba(62, 38, 21, 0.22),
+    0 0 0 2px rgba(255, 248, 220, 0.28);
+  z-index: 7;
 }
 
 .villa-piece.door::after {
@@ -3468,6 +3556,10 @@ p {
   content: '';
 }
 
+.villa-piece.door .villa-object-label {
+  bottom: calc(100% + 5px);
+}
+
 .villa-piece.porch-light {
   bottom: 32%;
   left: 50%;
@@ -3476,23 +3568,35 @@ p {
   border-radius: 1px;
   background: #ffd76d;
   box-shadow: 0 0 16px #ffd76d;
+  z-index: 8;
 }
 
 .villa-piece.window {
   bottom: 25%;
-  width: 15%;
-  height: 18%;
-  border: 4px solid #f4efe4;
+  width: 16%;
+  height: 19%;
+  border: 5px solid #f4efe4;
   border-radius: 1px;
   background:
-    linear-gradient(90deg, transparent 45%, rgba(255, 255, 255, 0.88) 45% 55%, transparent 55%),
-    linear-gradient(180deg, transparent 45%, rgba(255, 255, 255, 0.88) 45% 55%, transparent 55%),
+    linear-gradient(90deg, transparent 44%, rgba(255, 255, 255, 0.94) 44% 56%, transparent 56%),
+    linear-gradient(180deg, transparent 44%, rgba(255, 255, 255, 0.94) 44% 56%, transparent 56%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.48) 0 22%, transparent 22% 100%),
     linear-gradient(135deg, #69c7d9, #e8fbff);
-  box-shadow: inset -4px -4px 0 rgba(33, 91, 105, 0.22), 0 5px 0 rgba(32, 49, 58, 0.08);
+  box-shadow:
+    inset -4px -4px 0 rgba(33, 91, 105, 0.22),
+    0 5px 0 rgba(32, 49, 58, 0.08),
+    0 0 0 2px rgba(93, 61, 36, 0.16);
+  z-index: 7;
 }
 
 .villa-piece.window.left { left: 22%; }
 .villa-piece.window.right { right: 22%; }
+
+.villa-piece.window .villa-object-label {
+  bottom: -18px;
+  background: rgba(232, 251, 255, 0.94);
+  color: #215b69;
+}
 
 .villa-piece.balcony {
   bottom: 53%;
@@ -3503,17 +3607,24 @@ p {
   border-top: 0;
   border-radius: 1px;
   background: rgba(126, 203, 255, 0.3);
+  box-shadow: inset 0 -6px 0 rgba(65, 109, 122, 0.14);
+  z-index: 7;
 }
 
 .villa-room {
-  overflow: hidden;
-  border: 3px solid rgba(101, 76, 41, 0.18);
+  overflow: visible;
+  border: 3px solid rgba(101, 76, 41, 0.36);
   border-radius: 2px;
   background:
+    linear-gradient(180deg, transparent 0 calc(100% - 12px), rgba(111, 74, 34, 0.18) calc(100% - 12px) 100%),
     linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px),
     linear-gradient(180deg, rgba(82, 66, 43, 0.1) 1px, transparent 1px),
-    rgba(255, 248, 220, 0.34);
-  background-size: 14px 14px, 14px 14px, auto;
+    rgba(255, 248, 220, 0.64);
+  background-size: auto, 14px 14px, 14px 14px, auto;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.3),
+    inset 0 -10px 0 rgba(111, 74, 34, 0.08);
+  z-index: 3;
 }
 
 .villa-room.living {
@@ -3631,6 +3742,28 @@ p {
   }
 }
 
+.furniture {
+  z-index: 5;
+  box-shadow:
+    inset -3px -3px 0 rgba(32, 49, 58, 0.14),
+    0 4px 0 rgba(32, 49, 58, 0.08);
+  font-style: normal;
+}
+
+.furniture::before,
+.furniture::after {
+  position: absolute;
+  display: block;
+  content: '';
+  pointer-events: none;
+}
+
+.furniture .villa-object-label {
+  top: calc(100% + 2px);
+  bottom: auto;
+  background: rgba(255, 253, 248, 0.96);
+}
+
 .furniture.sofa {
   bottom: 10%;
   left: 8%;
@@ -3644,6 +3777,28 @@ p {
   background-size: 9px 100%, auto;
 }
 
+.furniture.sofa::before {
+  top: -35%;
+  right: 5%;
+  left: 5%;
+  height: 48%;
+  border: 2px solid #8f3e55;
+  border-bottom: 0;
+  border-radius: 3px 3px 0 0;
+  background:
+    linear-gradient(90deg, transparent 0 48%, rgba(255, 255, 255, 0.34) 48% 52%, transparent 52%),
+    #e27f9a;
+}
+
+.furniture.sofa::after {
+  right: 10%;
+  bottom: 16%;
+  left: 10%;
+  height: 24%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.28) 0 48%, transparent 48% 52%, rgba(255, 255, 255, 0.28) 52%);
+}
+
 .furniture.tea-table {
   right: 12%;
   bottom: 9%;
@@ -3652,6 +3807,25 @@ p {
   border: 2px solid #6b421f;
   border-radius: 1px;
   background: #a86d38;
+}
+
+.furniture.tea-table::before {
+  top: -20%;
+  right: -8%;
+  left: -8%;
+  height: 40%;
+  border: 2px solid #5d3d24;
+  border-radius: 2px;
+  background: #c08a47;
+}
+
+.furniture.tea-table::after {
+  right: 12%;
+  bottom: -45%;
+  left: 12%;
+  height: 50%;
+  background:
+    linear-gradient(90deg, #5d3d24 0 18%, transparent 18% 82%, #5d3d24 82% 100%);
 }
 
 .furniture.bookshelf {
@@ -3666,6 +3840,23 @@ p {
     #6b421f;
 }
 
+.furniture.bookshelf::before {
+  inset: 22% 0 auto;
+  height: 3px;
+  background: rgba(93, 61, 36, 0.72);
+  box-shadow:
+    0 16px 0 rgba(93, 61, 36, 0.72),
+    0 32px 0 rgba(93, 61, 36, 0.72);
+}
+
+.furniture.bookshelf::after {
+  top: 0;
+  bottom: 0;
+  left: 46%;
+  width: 3px;
+  background: rgba(93, 61, 36, 0.62);
+}
+
 .furniture.piano {
   top: 9%;
   left: 7%;
@@ -3678,6 +3869,26 @@ p {
     #2b2535;
 }
 
+.furniture.piano::before {
+  right: 8%;
+  bottom: -34%;
+  left: 8%;
+  height: 34%;
+  border: 2px solid #15121b;
+  border-top: 0;
+  background: repeating-linear-gradient(90deg, #f4efe4 0 8px, #15121b 8px 11px);
+}
+
+.furniture.piano::after {
+  top: -34%;
+  left: 6%;
+  width: 58%;
+  height: 34%;
+  border: 2px solid #15121b;
+  border-bottom: 0;
+  background: #2b2535;
+}
+
 .furniture.bed {
   right: 8%;
   bottom: 8%;
@@ -3688,6 +3899,27 @@ p {
   background:
     linear-gradient(90deg, #f4efe4 0 22%, #8f78ff 22%),
     #8f78ff;
+}
+
+.furniture.bed::before {
+  top: 16%;
+  left: 5%;
+  width: 22%;
+  height: 58%;
+  border-radius: 2px;
+  background: #fffdf8;
+}
+
+.furniture.bed::after {
+  right: 6%;
+  bottom: 12%;
+  width: 50%;
+  height: 36%;
+  border-radius: 2px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.36) 1px, transparent 1px),
+    #b79bff;
+  background-size: 10px 100%, auto;
 }
 
 .furniture.wardrobe {
@@ -3703,6 +3935,24 @@ p {
   background-size: 9px 100%, auto;
 }
 
+.furniture.wardrobe::before {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  background: rgba(93, 61, 36, 0.5);
+}
+
+.furniture.wardrobe::after {
+  top: 46%;
+  left: 38%;
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
+  background: #ffd76d;
+  box-shadow: 12px 0 0 #ffd76d;
+}
+
 .furniture.desk {
   bottom: 8%;
   left: 8%;
@@ -3711,6 +3961,25 @@ p {
   border: 2px solid #9a7025;
   border-radius: 1px;
   background: #d9a23e;
+}
+
+.furniture.desk::before {
+  top: -70%;
+  left: 8%;
+  width: 22%;
+  height: 70%;
+  border-left: 3px solid #6b421f;
+  border-top: 3px solid #6b421f;
+}
+
+.furniture.desk::after {
+  top: -90%;
+  left: 24%;
+  width: 18%;
+  height: 36%;
+  border-radius: 999px 999px 2px 2px;
+  background: #ffd76d;
+  box-shadow: 0 0 10px rgba(255, 215, 109, 0.56);
 }
 
 .furniture.kitchen {
@@ -3725,6 +3994,30 @@ p {
     #69c7d9;
 }
 
+.furniture.kitchen::before {
+  top: 10%;
+  right: 8%;
+  width: 32%;
+  height: 28%;
+  border: 2px solid #416d7a;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 50%, #416d7a 0 30%, transparent 32%),
+    #f4efe4;
+}
+
+.furniture.kitchen::after {
+  right: 8%;
+  bottom: 12%;
+  left: 8%;
+  height: 28%;
+  background:
+    radial-gradient(circle at 18% 50%, #20313a 0 9%, transparent 10%),
+    radial-gradient(circle at 42% 50%, #20313a 0 9%, transparent 10%),
+    radial-gradient(circle at 66% 50%, #20313a 0 9%, transparent 10%),
+    linear-gradient(180deg, #e8fbff, #69c7d9);
+}
+
 .furniture.fridge {
   top: 9%;
   right: 10%;
@@ -3737,6 +4030,23 @@ p {
     #d9f2ff;
 }
 
+.furniture.fridge::before {
+  top: 48%;
+  right: 0;
+  left: 0;
+  height: 2px;
+  background: rgba(127, 141, 148, 0.58);
+}
+
+.furniture.fridge::after {
+  top: 13%;
+  right: 16%;
+  width: 4px;
+  height: 60%;
+  border-radius: 999px;
+  background: #7f8d94;
+}
+
 .furniture.toy-shelf {
   top: 11%;
   left: 10%;
@@ -3745,6 +4055,22 @@ p {
   border: 2px solid #5d3d24;
   border-radius: 1px;
   background: repeating-linear-gradient(90deg, #d66d8a 0 8px, #ffd76d 8px 16px);
+}
+
+.furniture.toy-shelf::before {
+  inset: 38% 0 auto;
+  height: 3px;
+  background: rgba(93, 61, 36, 0.55);
+}
+
+.furniture.toy-shelf::after {
+  top: -18%;
+  left: 18%;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: #69c7d9;
+  box-shadow: 16px 5px 0 #ffd76d;
 }
 
 .furniture.toilet {
@@ -3757,6 +4083,27 @@ p {
   background: #f4efe4;
 }
 
+.furniture.toilet::before {
+  top: -44%;
+  right: 6%;
+  width: 48%;
+  height: 44%;
+  border: 2px solid #bfcbd0;
+  border-bottom: 0;
+  border-radius: 2px 2px 0 0;
+  background: #fffdf8;
+}
+
+.furniture.toilet::after {
+  right: 15%;
+  bottom: 18%;
+  left: 15%;
+  height: 46%;
+  border: 2px solid #bfcbd0;
+  border-radius: 50%;
+  background: #d9f2ff;
+}
+
 .furniture.sink {
   top: 10%;
   left: 10%;
@@ -3765,6 +4112,25 @@ p {
   border: 2px solid #8fbccc;
   border-radius: 1px;
   background: #cdefff;
+}
+
+.furniture.sink::before {
+  top: -48%;
+  left: 46%;
+  width: 18%;
+  height: 52%;
+  border-top: 3px solid #416d7a;
+  border-left: 3px solid #416d7a;
+  border-radius: 4px 0 0 0;
+}
+
+.furniture.sink::after {
+  top: 24%;
+  right: 16%;
+  left: 16%;
+  height: 42%;
+  border-radius: 50%;
+  background: #e8fbff;
 }
 
 .furniture.bathtub {
@@ -3778,6 +4144,28 @@ p {
     linear-gradient(90deg, rgba(255, 255, 255, 0.28) 1px, transparent 1px),
     #9fdfff;
   background-size: 9px 100%, auto;
+}
+
+.furniture.bathtub::before {
+  top: 20%;
+  right: 10%;
+  left: 10%;
+  height: 46%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 20% 42%, rgba(255, 255, 255, 0.9) 0 10%, transparent 11%),
+    radial-gradient(circle at 48% 38%, rgba(255, 255, 255, 0.76) 0 8%, transparent 9%),
+    #c9f6ff;
+}
+
+.furniture.bathtub::after {
+  top: -34%;
+  left: 12%;
+  width: 18%;
+  height: 42%;
+  border-top: 3px solid #416d7a;
+  border-left: 3px solid #416d7a;
+  border-radius: 5px 0 0 0;
 }
 
 .villa-outdoor.garden {

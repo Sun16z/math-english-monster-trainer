@@ -1552,31 +1552,99 @@ function HouseVilla({
           {has('solarRoof') ? <span className={`villa-piece solar-roof ${newestId === 'solarRoof' ? 'new' : ''}`} /> : null}
           {has('chimney') ? <span className={`villa-piece chimney ${newestId === 'chimney' ? 'new' : ''}`} /> : null}
           {has('partyLights') ? <span className={`villa-piece party-lights ${newestId === 'partyLights' ? 'new' : ''}`} /> : null}
-          {has('frontDoor') ? <span className={`villa-piece door ${newestId === 'frontDoor' ? 'new' : ''}`} /> : null}
+          {has('frontDoor') ? (
+            <span className={`villa-piece door ${newestId === 'frontDoor' ? 'new' : ''}`}>
+              <em className="villa-object-label">大門</em>
+            </span>
+          ) : null}
           {has('porchLight') ? <span className={`villa-piece porch-light ${newestId === 'porchLight' ? 'new' : ''}`} /> : null}
-          {has('windowLeft') ? <span className={`villa-piece window left ${newestId === 'windowLeft' ? 'new' : ''}`} /> : null}
-          {has('windowRight') ? <span className={`villa-piece window right ${newestId === 'windowRight' ? 'new' : ''}`} /> : null}
+          {has('windowLeft') ? (
+            <span className={`villa-piece window left ${newestId === 'windowLeft' ? 'new' : ''}`}>
+              <em className="villa-object-label">窗戶</em>
+            </span>
+          ) : null}
+          {has('windowRight') ? (
+            <span className={`villa-piece window right ${newestId === 'windowRight' ? 'new' : ''}`}>
+              <em className="villa-object-label">窗戶</em>
+            </span>
+          ) : null}
           {has('balcony') ? <span className={`villa-piece balcony ${newestId === 'balcony' ? 'new' : ''}`} /> : null}
           <span className="villa-room living">
-            {has('sofa') ? <i className={`furniture sofa ${newestId === 'sofa' ? 'new' : ''}`} /> : null}
-            {has('teaTable') ? <i className={`furniture tea-table ${newestId === 'teaTable' ? 'new' : ''}`} /> : null}
-            {has('bookshelf') ? <i className={`furniture bookshelf ${newestId === 'bookshelf' ? 'new' : ''}`} /> : null}
-            {has('grandPiano') ? <i className={`furniture piano ${newestId === 'grandPiano' ? 'new' : ''}`} /> : null}
+            <b className="villa-room-name">客廳</b>
+            {has('sofa') ? (
+              <i className={`furniture sofa ${newestId === 'sofa' ? 'new' : ''}`}>
+                <em className="villa-object-label">沙發</em>
+              </i>
+            ) : null}
+            {has('teaTable') ? (
+              <i className={`furniture tea-table ${newestId === 'teaTable' ? 'new' : ''}`}>
+                <em className="villa-object-label">木桌</em>
+              </i>
+            ) : null}
+            {has('bookshelf') ? (
+              <i className={`furniture bookshelf ${newestId === 'bookshelf' ? 'new' : ''}`}>
+                <em className="villa-object-label">書櫃</em>
+              </i>
+            ) : null}
+            {has('grandPiano') ? (
+              <i className={`furniture piano ${newestId === 'grandPiano' ? 'new' : ''}`}>
+                <em className="villa-object-label">鋼琴</em>
+              </i>
+            ) : null}
           </span>
           <span className="villa-room bedroom">
-            {has('bed') ? <i className={`furniture bed ${newestId === 'bed' ? 'new' : ''}`} /> : null}
-            {has('wardrobe') ? <i className={`furniture wardrobe ${newestId === 'wardrobe' ? 'new' : ''}`} /> : null}
-            {has('studyDesk') ? <i className={`furniture desk ${newestId === 'studyDesk' ? 'new' : ''}`} /> : null}
+            <b className="villa-room-name">臥室</b>
+            {has('bed') ? (
+              <i className={`furniture bed ${newestId === 'bed' ? 'new' : ''}`}>
+                <em className="villa-object-label">小床</em>
+              </i>
+            ) : null}
+            {has('wardrobe') ? (
+              <i className={`furniture wardrobe ${newestId === 'wardrobe' ? 'new' : ''}`}>
+                <em className="villa-object-label">衣櫃</em>
+              </i>
+            ) : null}
+            {has('studyDesk') ? (
+              <i className={`furniture desk ${newestId === 'studyDesk' ? 'new' : ''}`}>
+                <em className="villa-object-label">書桌</em>
+              </i>
+            ) : null}
           </span>
           <span className="villa-room kitchen-room">
-            {has('kitchen') ? <i className={`furniture kitchen ${newestId === 'kitchen' ? 'new' : ''}`} /> : null}
-            {has('fridge') ? <i className={`furniture fridge ${newestId === 'fridge' ? 'new' : ''}`} /> : null}
-            {has('toyShelf') ? <i className={`furniture toy-shelf ${newestId === 'toyShelf' ? 'new' : ''}`} /> : null}
+            <b className="villa-room-name">廚房</b>
+            {has('kitchen') ? (
+              <i className={`furniture kitchen ${newestId === 'kitchen' ? 'new' : ''}`}>
+                <em className="villa-object-label">爐台</em>
+              </i>
+            ) : null}
+            {has('fridge') ? (
+              <i className={`furniture fridge ${newestId === 'fridge' ? 'new' : ''}`}>
+                <em className="villa-object-label">冰箱</em>
+              </i>
+            ) : null}
+            {has('toyShelf') ? (
+              <i className={`furniture toy-shelf ${newestId === 'toyShelf' ? 'new' : ''}`}>
+                <em className="villa-object-label">玩具</em>
+              </i>
+            ) : null}
           </span>
           <span className="villa-room bathroom">
-            {has('toilet') ? <i className={`furniture toilet ${newestId === 'toilet' ? 'new' : ''}`} /> : null}
-            {has('sink') ? <i className={`furniture sink ${newestId === 'sink' ? 'new' : ''}`} /> : null}
-            {has('bathtub') ? <i className={`furniture bathtub ${newestId === 'bathtub' ? 'new' : ''}`} /> : null}
+            <b className="villa-room-name">浴室</b>
+            {has('toilet') ? (
+              <i className={`furniture toilet ${newestId === 'toilet' ? 'new' : ''}`}>
+                <em className="villa-object-label">馬桶</em>
+              </i>
+            ) : null}
+            {has('sink') ? (
+              <i className={`furniture sink ${newestId === 'sink' ? 'new' : ''}`}>
+                <em className="villa-object-label">水槽</em>
+              </i>
+            ) : null}
+            {has('bathtub') ? (
+              <i className={`furniture bathtub ${newestId === 'bathtub' ? 'new' : ''}`}>
+                <em className="villa-object-label">浴缸</em>
+              </i>
+            ) : null}
           </span>
           <div className="villa-house-pets" aria-label="屋內寵物">
             {occupants.map((occupant, index) => {
