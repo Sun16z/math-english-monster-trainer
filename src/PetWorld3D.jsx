@@ -285,12 +285,18 @@ export default function PetWorld3D({
   house = {},
   petAction = null,
 }) {
+  const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 760px)').matches;
+  const reduceMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const dpr = isMobile ? [1, 1.25] : [1, 1.55];
+
   return (
     <div className="pet-world-3d" aria-hidden="true" data-world-ready="true">
       <Canvas
         camera={{ position: [0, 2.9, 6.7], fov: 42 }}
-        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
-        dpr={[1, 1.8]}
+        gl={{ antialias: !isMobile, alpha: true, powerPreference: 'high-performance', preserveDrawingBuffer: false }}
+        dpr={dpr}
+        frameloop={reduceMotion ? 'demand' : 'always'}
+        performance={{ min: 0.55 }}
       >
         <CandyWorld
           monster={monster}

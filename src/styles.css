@@ -189,15 +189,16 @@ p {
 
 .sound-controls {
   display: grid;
-  grid-template-columns: auto auto;
+  grid-template-columns: repeat(3, minmax(74px, 1fr));
   flex: 0 0 auto;
   gap: 6px;
   align-items: center;
-  min-width: 162px;
+  min-width: 252px;
 }
 
 .sound-button,
-.sound-test-button {
+.sound-test-button,
+.ambience-button {
   min-width: 78px;
   min-height: 40px;
   padding: 0 12px;
@@ -219,6 +220,17 @@ p {
 .sound-test-button {
   background: rgba(246, 201, 77, 0.16);
   color: #7a5600;
+}
+
+.ambience-button {
+  background: rgba(105, 199, 217, 0.14);
+  color: #256275;
+}
+
+.ambience-button.active {
+  background: rgba(105, 199, 217, 0.24);
+  color: var(--teal-dark);
+  box-shadow: inset 0 -3px 0 rgba(22, 143, 128, 0.12);
 }
 
 .sound-test-button:disabled {
@@ -2153,6 +2165,33 @@ p {
   stroke-width: 2;
 }
 
+.quiz-flow-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.quiz-flow-strip span {
+  display: grid;
+  min-height: 30px;
+  place-items: center;
+  padding: 4px 6px;
+  border: 1px solid rgba(22, 143, 128, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--teal-dark);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-align: center;
+  box-shadow: inset 0 -3px 0 rgba(22, 143, 128, 0.08);
+}
+
+.quiz-flow-strip .is-repairing {
+  border-color: rgba(214, 76, 70, 0.28);
+  background: rgba(214, 76, 70, 0.1);
+  color: var(--danger);
+}
+
 .question-text {
   display: grid;
   min-height: 132px;
@@ -2257,6 +2296,11 @@ p {
   transform: translateY(-2px);
   border-color: rgba(22, 143, 128, 0.4);
   box-shadow: 0 10px 0 rgba(32, 49, 58, 0.08);
+}
+
+.answer-button:focus-visible {
+  outline: 3px solid rgba(246, 201, 77, 0.7);
+  outline-offset: 3px;
 }
 
 .answer-button:active:not(:disabled) {
@@ -2953,6 +2997,18 @@ p {
     min-height: auto;
   }
 
+  .quiz-panel {
+    order: 1;
+  }
+
+  .arena {
+    order: 2;
+  }
+
+  .progress-rail {
+    order: 3;
+  }
+
   .progress-rail {
     grid-template-columns: 1fr;
   }
@@ -3050,7 +3106,7 @@ p {
 
   .stats {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .account-menu {
@@ -3066,12 +3122,22 @@ p {
 
   .sound-controls {
     grid-column: 1 / -1;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     min-width: 0;
   }
 
   .heart-row {
     grid-column: 1 / -1;
+  }
+
+  .stat-pill {
+    min-width: 0;
+    min-height: 36px;
+    padding: 5px 6px;
+  }
+
+  .stat-pill strong {
+    font-size: 0.95rem;
   }
 
   .answer-grid {

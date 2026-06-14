@@ -291,6 +291,16 @@ function withTimeout(promise, timeoutMs, label) {
   });
 }
 
+function playHaptic(pattern = 16) {
+  try {
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      navigator.vibrate(pattern);
+    }
+  } catch {
+    // Vibration is optional; unsupported browsers should stay quiet.
+  }
+}
+
 function makeWavDataUrl(kind) {
   if (WAV_CACHE.has(kind)) return WAV_CACHE.get(kind);
 
@@ -343,6 +353,7 @@ function makeWavDataUrl(kind) {
 function createSoundEngine() {
   let ctx = null;
   let master = null;
+  let ambience = null;
 
   const ensureContext = async () => {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -432,7 +443,90 @@ function createSoundEngine() {
     return { ok: audio.ctx.state === 'running', state: audio.ctx.state };
   };
 
-  return { play };
+  const stopAmbience = (fadeSeconds = 0.5) => {
+    if (!ctx || !ambience) return { ok: true, state: 'idle' };
+    const active = ambience;
+    ambience = null;
+    const now = ctx.currentTime;
+    const end = now + fadeSeconds;
+    try {
+      active.bed.gain.cancelScheduledValues(now);
+      active.bed.gain.setValueAtTime(Math.max(0.0001, active.bed.gain.value || 0.0001), now);
+      active.bed.gain.linearRampToValueAtTime(0.0001, end);
+      [...active.oscillators, active.lfo].forEach((oscillator) => {
+        try {
+          oscillator.stop(end + 0.04);
+        } catch {
+          // Already stopped.
+        }
+      });
+      window.setTimeout(() => {
+        active.bed.disconnect();
+        active.lfoGain.disconnect();
+        active.oscillators.forEach((oscillator) => oscillator.disconnect());
+        active.noteGains.forEach((gain) => gain.disconnect());
+        active.lfo.disconnect();
+      }, fadeSeconds * 1000 + 80);
+    } catch {
+      return { ok: false, state: 'blocked' };
+    }
+    window.__monsterTrainerAudio = {
+      lastSound: 'ambience-stop',
+      state: 'idle',
+      playedAt: Date.now(),
+    };
+    return { ok: true, state: 'idle' };
+  };
+
+  const startAmbience = async () => {
+    const audio = await ensureContext();
+    if (!audio) return { ok: false, state: 'blocked' };
+    if (ambience) return { ok: true, state: 'playing' };
+
+    const start = audio.ctx.currentTime + 0.04;
+    const bed = audio.ctx.createGain();
+    bed.gain.setValueAtTime(0.0001, start);
+    bed.gain.exponentialRampToValueAtTime(0.052, start + 1.15);
+    bed.connect(audio.master);
+
+    const notePlan = [
+      { frequency: 261.63, gain: 0.28, type: 'sine' },
+      { frequency: 329.63, gain: 0.18, type: 'triangle' },
+      { frequency: 392, gain: 0.16, type: 'sine' },
+      { frequency: 523.25, gain: 0.09, type: 'sine' },
+    ];
+    const noteGains = [];
+    const oscillators = notePlan.map((note, index) => {
+      const oscillator = audio.ctx.createOscillator();
+      const noteGain = audio.ctx.createGain();
+      oscillator.type = note.type;
+      oscillator.frequency.setValueAtTime(note.frequency, start);
+      noteGain.gain.setValueAtTime(note.gain, start);
+      oscillator.connect(noteGain);
+      noteGain.connect(bed);
+      oscillator.start(start + index * 0.035);
+      noteGains.push(noteGain);
+      return oscillator;
+    });
+    const lfo = audio.ctx.createOscillator();
+    const lfoGain = audio.ctx.createGain();
+    lfo.type = 'sine';
+    lfo.frequency.setValueAtTime(0.08, start);
+    lfoGain.gain.setValueAtTime(0.012, start);
+    lfo.connect(lfoGain);
+    lfoGain.connect(bed.gain);
+    lfo.start(start);
+
+    ambience = { bed, oscillators, noteGains, lfo, lfoGain };
+    window.__monsterTrainerAudio = {
+      lastSound: 'ambience-start',
+      state: 'playing',
+      playedAt: Date.now(),
+    };
+    return { ok: true, state: 'playing' };
+  };
+
+  return { play, startAmbience, stopAmbience };
 }
 
 function createSpeechEngine() {
@@ -2534,17 +2628,12 @@ function QuizPanel({
         <span>{run.question.label}</span>
         <em>{run.question.domain}</em>
       </div>
+      <div className="quiz-flow-strip" aria-label="答題流程">
+        <span>第 {run.waveInStage}/5 波</span>
+        <span className={run.retrying ? 'is-repairing' : ''}>{run.retrying ? '訂正中' : '答對建房'}</span>
+        <span>連擊 {run.streak}</span>
+      </div>
       <div className="question-text">{run.question.prompt}</div>
-      <SpeechControls
-        question={run.question}
-        answered={isAnswered}
-        enabled={speechEnabled}
-        speechState={speechState}
-        onToggle={onSpeechToggle}
-        onSpeakPrompt={onSpeakPrompt}
-        onSpeakChoices={onSpeakChoices}
-        onSpeakPractice={onSpeakPractice}
-      />
       <div className="answer-grid">
         {run.question.choices.map((choice, index) => {
           const blocked = run.wrongChoices.includes(choice);
@@ -2555,6 +2644,7 @@ function QuizPanel({
               key={`${choice}-${index}`}
               type="button"
               className={`answer-button ${correct ? 'correct' : ''} ${wrong ? 'wrong' : ''}`}
+              aria-label={`選項 ${index + 1}：${choice}`}
               onClick={() => onAnswer(choice)}
               disabled={isAnswered || blocked}
             >
@@ -2564,6 +2654,16 @@ function QuizPanel({
           );
         })}
       </div>
+      <SpeechControls
+        question={run.question}
+        answered={isAnswered}
+        enabled={speechEnabled}
+        speechState={speechState}
+        onToggle={onSpeechToggle}
+        onSpeakPrompt={onSpeakPrompt}
+        onSpeakChoices={onSpeakChoices}
+        onSpeakPractice={onSpeakPractice}
+      />
       <div className={run.feedback ? `feedback ${run.feedback.kind}` : 'feedback'}>
         {run.feedback ? (
           <>
@@ -2590,7 +2690,7 @@ function QuizPanel({
   );
 }
 
-function SoundControls({ enabled, audioState, onToggle, onTest }) {
+function SoundControls({ enabled, audioState, ambienceEnabled, ambienceState, onToggle, onTest, onAmbienceToggle }) {
   const buttonText = enabled ? '音效 ON' : '音效 OFF';
   const stateText =
     audioState === 'ready'
@@ -2602,6 +2702,12 @@ function SoundControls({ enabled, audioState, onToggle, onTest }) {
         : audioState === 'unsupported'
           ? '無音訊'
           : '試聽';
+  const ambienceText =
+    ambienceState === 'checking'
+      ? '啟動中'
+      : ambienceEnabled
+        ? '音景 ON'
+        : '音景 OFF';
 
   return (
     <div className="sound-controls">
@@ -2610,6 +2716,13 @@ function SoundControls({ enabled, audioState, onToggle, onTest }) {
       </button>
       <button type="button" className="sound-test-button" onClick={onTest} disabled={!enabled}>
         {stateText}
+      </button>
+      <button
+        type="button"
+        className={ambienceEnabled ? 'ambience-button active' : 'ambience-button'}
+        onClick={onAmbienceToggle}
+      >
+        {ambienceText}
       </button>
     </div>
   );
@@ -2702,8 +2815,11 @@ function TopBar({
   accounts,
   soundEnabled,
   audioState,
+  ambienceEnabled,
+  ambienceState,
   onSoundToggle,
   onSoundTest,
+  onAmbienceToggle,
   onLogin,
   onSwitchAccount,
   onModeChange,
@@ -2737,8 +2853,11 @@ function TopBar({
         <SoundControls
           enabled={soundEnabled}
           audioState={audioState}
+          ambienceEnabled={ambienceEnabled}
+          ambienceState={ambienceState}
           onToggle={onSoundToggle}
           onTest={onSoundTest}
+          onAmbienceToggle={onAmbienceToggle}
         />
         <div className="heart-row" aria-label="生命值">
           {Array.from({ length: run.maxHearts }, (_, index) => (
@@ -2938,6 +3057,8 @@ export default function App() {
   const [hatchFx, setHatchFx] = useState(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [audioState, setAudioState] = useState('idle');
+  const [ambienceEnabled, setAmbienceEnabled] = useState(false);
+  const [ambienceState, setAmbienceState] = useState('idle');
   const [speechEnabled, setSpeechEnabled] = useState(true);
   const [speechState, setSpeechState] = useState('idle');
   const soundEngineRef = useRef(null);
@@ -3009,6 +3130,31 @@ export default function App() {
       return false;
     }
   }, [soundEnabled]);
+
+  const toggleAmbience = useCallback(async () => {
+    if (ambienceEnabled) {
+      soundEngineRef.current?.stopAmbience?.();
+      setAmbienceEnabled(false);
+      setAmbienceState('idle');
+      return false;
+    }
+
+    if (typeof window === 'undefined') return false;
+    if (!soundEngineRef.current) {
+      soundEngineRef.current = createSoundEngine();
+    }
+
+    setSoundEnabled(true);
+    soundNeedsUnlockRef.current = false;
+    setAmbienceState('checking');
+    const result = await soundEngineRef.current.startAmbience();
+    soundNeedsUnlockRef.current = !result.ok;
+    setAmbienceEnabled(result.ok);
+    setAmbienceState(result.ok ? 'playing' : result.state);
+    setAudioState(result.ok ? 'ready' : result.state);
+    if (result.ok) playHaptic(10);
+    return result.ok;
+  }, [ambienceEnabled]);
 
   const speakEnglish = useCallback(async (text, options = {}) => {
     const cleanText = String(text || '').trim();
@@ -3213,6 +3359,7 @@ export default function App() {
     const correct = choice === run.question.answer;
     if (!correct) {
       void playSound('wrong');
+      playHaptic([22, 28, 22]);
       window.setTimeout(() => void playSound('retry'), 170);
       const leadPet = getStrongestPet(run.petDex);
       if (leadPet) showPetAction({ type: 'sad', monsterId: leadPet.id }, 760);
@@ -3347,6 +3494,7 @@ export default function App() {
         ? ` 撿到${nextEgg.label}！`
         : '';
 
+    playHaptic(nextHp === 0 ? [32, 28, 46] : nextStreak >= 3 ? [18, 22, 18] : 14);
     showDamagePop({ value: damage, crit: nextStreak >= 3 });
     if (nextHp === 0) showCaptureFx();
     void playSound(nextHp === 0 ? 'catch' : nextStreak > 0 && nextStreak % 3 === 0 ? 'combo' : 'good');
@@ -3497,6 +3645,7 @@ export default function App() {
     setRun(nextRun);
     saveRunProfile(nextRun);
     void playSound('build');
+    playHaptic(18);
     showBurst({ type: 'build', label: result.reward.label }, 980);
     if (leadPet) showPetAction({ type: 'cheer', monsterId: leadPet }, 880);
   };
@@ -3545,6 +3694,7 @@ export default function App() {
     };
 
     void playSound(leveledUp ? 'level' : 'feed');
+    playHaptic(leveledUp ? [24, 20, 34] : 16);
     if (rareFood && !leveledUp) window.setTimeout(() => void playSound('rare'), 180);
     setRun(nextRun);
     setSelectedPetId(leadPet.id);
@@ -3573,6 +3723,7 @@ export default function App() {
     const currentPoints = toNonNegativeInteger(profile.learningPoints);
     if (currentPoints < item.cost) {
       void playSound('wrong');
+      playHaptic([18, 24, 18]);
       showBurst({ type: 'wrong', label: '點數不足' }, 820);
       setRun((current) => ({
         ...current,
@@ -3628,6 +3779,7 @@ export default function App() {
       ].slice(0, 6),
     }));
     void playSound('rare');
+    playHaptic([20, 20, 36]);
     showBurst({ type: 'rare', label: item.label }, 1080);
     if (targetPetId) showPetAction({ type: 'cheer', monsterId: targetPetId }, 980);
   };
@@ -3673,6 +3825,7 @@ export default function App() {
       ].slice(0, 6),
     }));
     void playSound('select');
+    playHaptic(12);
     showBurst({ type: 'heart', label: item.label }, 900);
     showPetAction({ type: 'cheer', monsterId: selectedPetId }, 920);
   };
@@ -3708,6 +3861,7 @@ export default function App() {
       ].slice(0, 6),
     }));
     void playSound('poke');
+    playHaptic(10);
     showBurst({ type: 'heart', label: room.label }, 850);
     if (leadPet) showPetAction({ type: 'cheer', monsterId: leadPet }, 860);
   };
@@ -3734,6 +3888,7 @@ export default function App() {
       ].slice(0, 6),
     }));
     void playSound('select');
+    playHaptic(10);
     showBurst({ type: 'heart', label: theme.label }, 780);
   };
 
@@ -3745,6 +3900,7 @@ export default function App() {
     const actionType = friendly ? 'cheer' : 'poke';
 
     void playSound('poke');
+    playHaptic(10);
     showPetAction({ type: actionType, monsterId }, friendly ? 940 : 820);
     showBurst({
       type: 'heart',
@@ -3870,6 +4026,7 @@ export default function App() {
     window.clearTimeout(burstTimeoutRef.current);
     window.clearTimeout(damagePopTimeoutRef.current);
     window.clearTimeout(captureFxTimeoutRef.current);
+    soundEngineRef.current?.stopAmbience?.(0.1);
     speechEngineRef.current?.cancel();
   }, []);
 
@@ -3916,9 +4073,17 @@ export default function App() {
         accounts={accounts}
         soundEnabled={soundEnabled}
         audioState={audioState}
+        ambienceEnabled={ambienceEnabled}
+        ambienceState={ambienceState}
         onSoundToggle={() => {
           const nextEnabled = !soundEnabled;
           setSoundEnabled(nextEnabled);
+          if (!nextEnabled) {
+            soundEngineRef.current?.stopAmbience?.();
+            setAmbienceEnabled(false);
+            setAmbienceState('idle');
+            return;
+          }
           if (nextEnabled) {
             soundNeedsUnlockRef.current = false;
             void playSound('test', { force: true });
@@ -3928,6 +4093,7 @@ export default function App() {
           soundNeedsUnlockRef.current = false;
           void playSound('test', { force: true });
         }}
+        onAmbienceToggle={() => void toggleAmbience()}
         onLogin={loginAccount}
         onSwitchAccount={switchAccount}
         onModeChange={changeMode}
