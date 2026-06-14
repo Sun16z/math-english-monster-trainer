@@ -181,9 +181,10 @@ test('shop wardrobe items normalize and point to valid accessories', () => {
 });
 
 test('math questions always include the correct answer once', () => {
+  const grades = ['grade2', 'grade4', 'grade5'];
   for (let seed = 1; seed <= 50; seed += 1) {
     const question = generateMathQuestion(
-      { grade: seed % 2 ? 'grade2' : 'grade5', level: 4, wave: seed, streak: seed % 3, difficulty: 'scout' },
+      { grade: grades[seed % grades.length], level: 4, wave: seed, streak: seed % 3, difficulty: 'scout' },
       makeRng(seed),
     );
     const matches = question.choices.filter((choice) => choice === question.answer);
@@ -212,8 +213,32 @@ test('grade 5 math includes percent and large-unit conversion banks', () => {
   assert.ok(domains.has('公里公尺換算'));
 });
 
+test('grade 4 math includes second-semester core banks', () => {
+  const domains = new Set();
+  for (let seed = 1; seed <= 900; seed += 1) {
+    const question = generateMathQuestion(
+      { grade: 'grade4', level: (seed % 8) + 1, wave: (seed % 6) + 1, streak: seed % 4, difficulty: 'scout' },
+      makeRng(seed),
+    );
+    domains.add(question.domain);
+    assert.equal(question.subject, 'math');
+    assert.equal(question.choices.filter((choice) => choice === question.answer).length, 1);
+  }
+
+  assert.ok(domains.has('概數四捨五入'));
+  assert.ok(domains.has('無條件進入'));
+  assert.ok(domains.has('同分母分數加法'));
+  assert.ok(domains.has('同分母分數減法'));
+  assert.ok(domains.has('分數整數倍'));
+  assert.ok(domains.has('小數乘以整數'));
+  assert.ok(domains.has('統計圖表'));
+  assert.ok(domains.has('周長'));
+  assert.ok(domains.has('面積'));
+  assert.ok(domains.has('角度'));
+});
+
 test('mandarin questions cover exam-style language skills', () => {
-  for (const grade of ['grade2', 'grade5']) {
+  for (const grade of ['grade2', 'grade4', 'grade5']) {
     const question = generateMandarinQuestion({ grade, level: 2, wave: 3 }, makeRng(7));
     assert.equal(question.subject, 'mandarin');
     assert.equal(question.choices.includes(question.answer), true);
@@ -222,8 +247,9 @@ test('mandarin questions cover exam-style language skills', () => {
 });
 
 test('english questions always include a local explanation and answer', () => {
+  const grades = ['grade2', 'grade4', 'grade5'];
   for (let seed = 10; seed < 40; seed += 1) {
-    const question = generateEnglishQuestion({ grade: seed % 2 ? 'grade2' : 'grade5', level: seed, wave: 2 }, makeRng(seed));
+    const question = generateEnglishQuestion({ grade: grades[seed % grades.length], level: seed, wave: 2 }, makeRng(seed));
     assert.equal(question.choices.includes(question.answer), true);
     assert.equal(typeof question.explanation, 'string');
     assert.ok(question.explanation.length > 4);
@@ -256,11 +282,35 @@ test('natural questions cover grade 5 plant and combustion topics', () => {
   assert.ok(domains.has('滅火與安全'));
 });
 
+test('natural questions cover grade 4 force, insects and resources topics', () => {
+  const domains = new Set();
+  for (let seed = 1; seed <= 400; seed += 1) {
+    const question = generateNaturalQuestion(
+      { grade: 'grade4', level: (seed % 6) + 1, wave: (seed % 5) + 1, streak: seed % 3 },
+      makeRng(seed),
+    );
+    domains.add(question.domain);
+    assert.equal(question.subject, 'natural');
+    assert.equal(question.choices.includes(question.answer), true);
+    assert.ok(question.explanation.length > 6);
+  }
+
+  assert.ok(domains.has('力與運動'));
+  assert.ok(domains.has('昆蟲家族'));
+  assert.ok(domains.has('昆蟲完全變態'));
+  assert.ok(domains.has('昆蟲不完全變態'));
+  assert.ok(domains.has('能量與太陽'));
+  assert.ok(domains.has('自然資源'));
+  assert.ok(domains.has('資源利用'));
+});
+
 test('bank-based questions shuffle the answer position across seeds', () => {
   for (const [generate, options] of [
     [generateMandarinQuestion, { grade: 'grade2' }],
+    [generateMandarinQuestion, { grade: 'grade4' }],
     [generateMandarinQuestion, { grade: 'grade5' }],
     [generateNaturalQuestion, { grade: 'grade2' }],
+    [generateNaturalQuestion, { grade: 'grade4' }],
     [generateNaturalQuestion, { grade: 'grade5' }],
   ]) {
     const positions = new Set();

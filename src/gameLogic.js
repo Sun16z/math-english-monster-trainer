@@ -8,6 +8,7 @@ export const MODES = {
 
 export const GRADES = {
   grade2: { id: 'grade2', label: '二下', name: '國小二年級下學期期末' },
+  grade4: { id: 'grade4', label: '四下', name: '國小四年級下學期期末' },
   grade5: { id: 'grade5', label: '五下', name: '國小五年級下學期期末' },
 };
 
@@ -25,6 +26,12 @@ export const CURRICULUM_OUTLINE = {
     math: ['1000以內數與比大小', '三位數加減', '九九乘法、平分與分裝', '長度、時間與錢幣', '兩步驟應用'],
     english: ['字母大小寫', '顏色數字', '教室用語', '問候與簡短句', '動物與食物單字'],
     natural: ['植物觀察', '動物與生活', '天氣變化', '水的觀察', '磁鐵與力'],
+  },
+  grade4: {
+    mandarin: ['語詞辨析與成語', '段落大意與主旨', '因果推論', '倒敘與敘事順序', '譬喻擬人與誇飾'],
+    math: ['概數與估算', '分數加減與整數倍', '統計圖表', '小數乘以整數', '周長面積與角度'],
+    english: ['時間與日常活動', '天氣與季節', '學科與星期', '地點與物品', '簡易問答句'],
+    natural: ['力與運動', '昆蟲家族', '昆蟲完全變態與不完全變態', '能量與太陽', '自然資源與利用'],
   },
   grade5: {
     mandarin: ['詞義辨析', '成語與語詞', '修辭判讀', '句型改寫', '閱讀推論'],
@@ -832,6 +839,104 @@ const MANDARIN_BANK = {
       tip: '從行為想想他的個性。',
     },
   ],
+  grade4: [
+    {
+      domain: '語詞辨析',
+      prompt: '「鼓勵」的意思最接近哪一個？',
+      answer: '給人信心和力量',
+      choices: ['給人信心和力量', '故意責罵別人', '把東西藏起來', '快速跑步'],
+      explanation: '鼓勵是用話語或行動支持別人，使對方更有信心。',
+      tip: '想想比賽前同學為你加油的感覺。',
+    },
+    {
+      domain: '語詞辨析',
+      prompt: '「猶豫」的相反詞最接近哪一個？',
+      answer: '果斷',
+      choices: ['果斷', '遲疑', '擔心', '害羞'],
+      explanation: '猶豫是不容易做決定，果斷是能很快做出決定。',
+      tip: '找出「很快決定」的詞。',
+    },
+    {
+      domain: '成語',
+      prompt: '「持之以恆」的意思是什麼？',
+      answer: '長久堅持不放棄',
+      choices: ['長久堅持不放棄', '一下子就完成', '把東西拿很高', '每天換不同目標'],
+      explanation: '持之以恆表示能持續努力，不半途而廢。',
+      tip: '關鍵是「恆」，有長久、持續的意思。',
+    },
+    {
+      domain: '成語',
+      prompt: '哪一個成語最適合形容「事情很緊急，不能等待」？',
+      answer: '刻不容緩',
+      choices: ['刻不容緩', '慢條斯理', '半途而廢', '風平浪靜'],
+      explanation: '刻不容緩表示一刻也不能拖延。',
+      tip: '找和「急」最有關的成語。',
+    },
+    {
+      domain: '修辭',
+      prompt: '「太陽像一顆金色大球掛在天空」用了哪一種修辭？',
+      answer: '譬喻',
+      choices: ['譬喻', '設問', '排比', '反覆'],
+      explanation: '用「像」把太陽比成金色大球，這是譬喻。',
+      tip: '看到「像」，先想是不是比喻。',
+    },
+    {
+      domain: '修辭',
+      prompt: '「小溪唱著歌，奔向遠方」用了哪一種修辭？',
+      answer: '擬人',
+      choices: ['擬人', '誇飾', '映襯', '頂真'],
+      explanation: '小溪不會真的唱歌，把它寫得像人一樣，是擬人。',
+      tip: '自然物做了人的動作。',
+    },
+    {
+      domain: '段落大意',
+      prompt: '「妹妹每天練習跳繩，從一開始只能跳十下，到後來能連續跳一百下。」這段主要在說什麼？',
+      answer: '妹妹努力練習後進步了',
+      choices: ['妹妹努力練習後進步了', '妹妹不喜歡運動', '跳繩只能跳十下', '大家都不會跳繩'],
+      explanation: '段落重點是練習帶來進步。',
+      tip: '找出段落從開始到後來的變化。',
+    },
+    {
+      domain: '因果推論',
+      prompt: '「因為連日大雨，操場積了水，所以體育課改到活動中心。」體育課改地點的原因是？',
+      answer: '操場積水',
+      choices: ['操場積水', '活動中心太小', '學生忘記帶球', '老師想唱歌'],
+      explanation: '句子說連日大雨造成操場積水，因此改到活動中心。',
+      tip: '看「因為」後面的原因。',
+    },
+    {
+      domain: '倒敘',
+      prompt: '文章一開始先寫主角得獎，接著才回想練習的過程，這種寫法較接近？',
+      answer: '倒敘',
+      choices: ['倒敘', '順敘', '對話', '列舉'],
+      explanation: '先寫後來發生的結果，再回頭寫以前的經過，就是倒敘。',
+      tip: '時間順序被往回拉了。',
+    },
+    {
+      domain: '句型',
+      prompt: '哪一句最適合接在「只要願意嘗試，」後面？',
+      answer: '就有機會找到新的方法。',
+      choices: ['就有機會找到新的方法。', '但是昨天已經下雨。', '或者鉛筆很尖。', '雖然大家都睡著。'],
+      explanation: '「只要……就……」表示條件和結果。',
+      tip: '看到「只要」，常找「就」。',
+    },
+    {
+      domain: '標點',
+      prompt: '「我想知道：明天要帶哪些用品？」句中的「：」叫什麼？',
+      answer: '冒號',
+      choices: ['冒號', '頓號', '刪節號', '破折號'],
+      explanation: '冒號常用來提示下文或引出說明。',
+      tip: '看起來像上下兩個點。',
+    },
+    {
+      domain: '閱讀推論',
+      prompt: '「爸爸看著修好的腳踏車，露出放心的笑容。」可以推論爸爸？',
+      answer: '原本擔心腳踏車壞掉',
+      choices: ['原本擔心腳踏車壞掉', '討厭騎腳踏車', '不會修任何東西', '準備把車丟掉'],
+      explanation: '修好後露出放心的笑容，表示原先可能擔心或煩惱。',
+      tip: '從「放心」推回原本的心情。',
+    },
+  ],
   grade5: [
     {
       domain: '成語',
@@ -1114,6 +1219,32 @@ const ENGLISH_BANK = {
     { word: 'egg', zh: '蛋', sentence: 'This is an egg.', blank: 'This is an ___.', distractors: ['milk', 'cat', 'ten'] },
     { word: 'A a', zh: '字母 A 的大小寫', sentence: 'A is for apple.', blank: '___ is for apple.', distractors: ['B b', 'C c', 'D d'] },
   ],
+  grade4: [
+    { word: 'math', zh: '數學', sentence: 'I like math.', blank: 'I like ___.', distractors: ['rainy', 'kitchen', 'seven'] },
+    { word: 'English', zh: '英語', sentence: 'We have English on Monday.', blank: 'We have ___ on Monday.', distractors: ['cloudy', 'bedroom', 'breakfast'] },
+    { word: 'science', zh: '自然', sentence: 'Science is fun.', blank: '___ is fun.', distractors: ['Sunday', 'umbrella', 'thirty'] },
+    { word: 'music', zh: '音樂', sentence: 'I have music class today.', blank: 'I have ___ class today.', distractors: ['windy', 'noodles', 'eleven'] },
+    { word: 'art', zh: '美術', sentence: 'She likes art.', blank: 'She likes ___.', distractors: ['rainy', 'bathroom', 'jump'] },
+    { word: 'PE', zh: '體育', sentence: 'We play basketball in PE class.', blank: 'We play basketball in ___ class.', distractors: ['cloudy', 'dinner', 'Tuesday'] },
+    { word: 'sunny', zh: '晴朗的', sentence: 'It is sunny today.', blank: 'It is ___ today.', distractors: ['rainy', 'math', 'bedroom'] },
+    { word: 'cloudy', zh: '多雲的', sentence: 'It is cloudy in the afternoon.', blank: 'It is ___ in the afternoon.', distractors: ['sunny', 'music', 'hamburger'] },
+    { word: 'windy', zh: '有風的', sentence: 'It is windy. Hold your hat.', blank: 'It is ___. Hold your hat.', distractors: ['science', 'kitchen', 'twelve'] },
+    { word: 'rainy', zh: '下雨的', sentence: 'It is rainy. Take an umbrella.', blank: 'It is ___. Take an umbrella.', distractors: ['sunny', 'art', 'thirty'] },
+    { word: 'Monday', zh: '星期一', sentence: 'I have math on Monday.', blank: 'I have math on ___.', distractors: ['July', 'rainy', 'kitchen'] },
+    { word: 'Friday', zh: '星期五', sentence: 'We have PE on Friday.', blank: 'We have PE on ___.', distractors: ['cloudy', 'breakfast', 'museum'] },
+    { word: 'o’clock', zh: '整點', sentence: 'It is eight o’clock.', blank: 'It is eight ___.', distractors: ['thirty', 'rainy', 'science'] },
+    { word: 'thirty', zh: '三十分', sentence: 'It is seven thirty.', blank: 'It is seven ___.', distractors: ['o’clock', 'windy', 'art'] },
+    { word: 'get up', zh: '起床', sentence: 'I get up at six thirty.', blank: 'I ___ at six thirty.', distractors: ['go home', 'cloudy', 'Friday'] },
+    { word: 'go home', zh: '回家', sentence: 'I go home at four.', blank: 'I ___ at four.', distractors: ['get up', 'rainy', 'music'] },
+    { word: 'lunch', zh: '午餐', sentence: 'I eat lunch at twelve.', blank: 'I eat ___ at twelve.', distractors: ['math', 'windy', 'bedroom'] },
+    { word: 'breakfast', zh: '早餐', sentence: 'I eat breakfast at seven.', blank: 'I eat ___ at seven.', distractors: ['science', 'cloudy', 'Friday'] },
+    { word: 'kitchen', zh: '廚房', sentence: 'Mom is in the kitchen.', blank: 'Mom is in the ___.', distractors: ['windy', 'math', 'thirty'] },
+    { word: 'bedroom', zh: '臥室', sentence: 'The book is in my bedroom.', blank: 'The book is in my ___.', distractors: ['rainy', 'science', 'lunch'] },
+    { word: 'What time is it?', zh: '現在幾點？', sentence: 'What time is it? It is nine o’clock.', blank: '___ It is nine o’clock.', distractors: ['What day is today?', 'Do you like art?', 'Where is my bag?'] },
+    { word: 'What day is today?', zh: '今天星期幾？', sentence: 'What day is today? It is Friday.', blank: '___ It is Friday.', distractors: ['What time is it?', 'How is the weather?', 'Do you like PE?'] },
+    { word: 'How is the weather?', zh: '天氣如何？', sentence: 'How is the weather? It is sunny.', blank: '___ It is sunny.', distractors: ['What time is it?', 'Where is the kitchen?', 'Can you draw?'] },
+    { word: 'Do you like math?', zh: '你喜歡數學嗎？', sentence: 'Do you like math? Yes, I do.', blank: '___ Yes, I do.', distractors: ['Does you likes math?', 'Are you math?', 'Where math?'] },
+  ],
   grade5: [
     { word: 'usually', zh: '通常', sentence: 'I usually get up at six.', blank: 'I ___ get up at six.', distractors: ['never', 'table', 'hungry'] },
     { word: 'always', zh: '總是', sentence: 'I always brush my teeth at night.', blank: 'I ___ brush my teeth at night.', distractors: ['never', 'kitchen', 'short'] },
@@ -1314,6 +1445,104 @@ const NATURAL_BANK = {
       choices: ['可以，磁力能穿過薄紙', '完全不行', '紙會燒起來', '迴紋針會變成磁鐵飛走'],
       explanation: '磁力可以穿過紙張、塑膠等較薄的物品。',
       tip: '可以在家用紙和磁鐵試試看。',
+    },
+  ],
+  grade4: [
+    {
+      domain: '力與運動',
+      prompt: '推動靜止的玩具車後，玩具車開始移動，主要是因為受到什麼影響？',
+      answer: '力',
+      choices: ['力', '顏色', '聲音', '氣味'],
+      explanation: '力可以改變物體的運動狀態，讓靜止的物體開始移動。',
+      tip: '想想推、拉都屬於什麼。',
+    },
+    {
+      domain: '力與運動',
+      prompt: '煞車時，腳踏車速度變慢，表示力可以改變物體的什麼？',
+      answer: '速度',
+      choices: ['速度', '顏色', '味道', '材質'],
+      explanation: '力能讓物體變快、變慢或停止。',
+      tip: '煞車前後最明顯變化是快慢。',
+    },
+    {
+      domain: '力與運動',
+      prompt: '橡皮筋被拉長後，放手會彈回，和哪一種力最有關？',
+      answer: '彈力',
+      choices: ['彈力', '磁力', '浮力', '摩擦力'],
+      explanation: '物體變形後想恢復原狀的力稱為彈力。',
+      tip: '「彈」回去就是線索。',
+    },
+    {
+      domain: '昆蟲家族',
+      prompt: '昆蟲的身體通常可以分成哪三部分？',
+      answer: '頭、胸、腹',
+      choices: ['頭、胸、腹', '頭、手、腳', '根、莖、葉', '殼、鰓、尾'],
+      explanation: '昆蟲身體分為頭、胸、腹，並且通常有六隻腳。',
+      tip: '昆蟲的腳長在胸部。',
+    },
+    {
+      domain: '昆蟲家族',
+      prompt: '下列哪一種動物是昆蟲？',
+      answer: '螞蟻',
+      choices: ['螞蟻', '蜘蛛', '蝸牛', '蚯蚓'],
+      explanation: '螞蟻有昆蟲的頭胸腹與六隻腳特徵；蜘蛛有八隻腳。',
+      tip: '先數腳，再看身體分段。',
+    },
+    {
+      domain: '昆蟲完全變態',
+      prompt: '蝴蝶的一生通常是卵、幼蟲、蛹、成蟲，這屬於哪一種變態？',
+      answer: '完全變態',
+      choices: ['完全變態', '不完全變態', '沒有變化', '植物發芽'],
+      explanation: '有蛹期的昆蟲成長過程稱為完全變態。',
+      tip: '看到「蛹」就是關鍵。',
+    },
+    {
+      domain: '昆蟲不完全變態',
+      prompt: '蟋蟀的一生沒有蛹期，幼體和成蟲外形相似，這屬於？',
+      answer: '不完全變態',
+      choices: ['不完全變態', '完全變態', '蒸散作用', '燃燒作用'],
+      explanation: '沒有蛹期，幼體逐漸長成成蟲，是不完全變態。',
+      tip: '判斷是否有蛹期。',
+    },
+    {
+      domain: '昆蟲與環境',
+      prompt: '蜜蜂採花蜜時，也常幫植物完成什麼重要工作？',
+      answer: '授粉',
+      choices: ['授粉', '滅火', '結冰', '發電'],
+      explanation: '蜜蜂在花朵間移動，能幫助花粉傳播。',
+      tip: '花粉從一朵花到另一朵花。',
+    },
+    {
+      domain: '能量與太陽',
+      prompt: '地球上許多生物成長所需的能量，最主要來自哪裡？',
+      answer: '太陽',
+      choices: ['太陽', '月亮', '冰箱', '鉛筆盒'],
+      explanation: '太陽提供光和熱，是地球許多能量的來源。',
+      tip: '植物行光合作用需要它。',
+    },
+    {
+      domain: '能量形式',
+      prompt: '手電筒打開後，電池中的能量主要轉成哪一種能量？',
+      answer: '光能',
+      choices: ['光能', '聲音', '土壤', '花粉'],
+      explanation: '手電筒把電池提供的能量轉換成光，照亮環境。',
+      tip: '手電筒最主要的功能是發出什麼？',
+    },
+    {
+      domain: '自然資源',
+      prompt: '下列哪一項屬於自然資源？',
+      answer: '水',
+      choices: ['水', '塑膠尺', '作業簿', '電視遙控器'],
+      explanation: '水、空氣、陽光、森林等來自自然，可供生活使用。',
+      tip: '找出自然界原本就有的東西。',
+    },
+    {
+      domain: '資源利用',
+      prompt: '下列哪一種做法最能節約自然資源？',
+      answer: '隨手關水龍頭',
+      choices: ['隨手關水龍頭', '讓水一直流', '把紙張只寫一行就丟掉', '白天開很多電燈'],
+      explanation: '節約用水、用電和減少浪費，都能保護資源。',
+      tip: '找出最不浪費的做法。',
     },
   ],
   grade5: [
@@ -1910,6 +2139,209 @@ function fraction(n, d) {
   return `${nn}/${dd}`;
 }
 
+function generateGrade4MathQuestion({ grade = 'grade4', level = 1, wave = 1, streak = 0, difficulty = 'sprout' } = {}, rng = Math.random) {
+  const diff = DIFFICULTIES[difficulty] || DIFFICULTIES.sprout;
+  const typeIndex = (level + wave + Math.floor(streak / 2) + Math.floor(rng() * 8)) % 12;
+
+  if (typeIndex === 0) {
+    const number = 1200 + Math.floor(rng() * 7800);
+    const place = pick([
+      { label: '十位', base: 10 },
+      { label: '百位', base: 100 },
+      { label: '千位', base: 1000 },
+    ], rng);
+    const answer = Math.round(number / place.base) * place.base;
+    return makeQuestion({
+      subject: 'math',
+      grade,
+      domain: '概數四捨五入',
+      prompt: `${number} 四捨五入到${place.label}是多少？`,
+      answer: String(answer),
+      choices: buildNumberChoices(answer, rng, place.base * 2),
+      explanation: `四捨五入到${place.label}，要看下一位數字，答案是 ${answer}。`,
+      tip: '下一位滿 5 就進 1，不滿 5 就捨去。',
+    });
+  }
+
+  if (typeIndex === 1) {
+    const people = 20 + Math.floor(rng() * 75);
+    const perBus = pick([8, 10, 12, 15], rng);
+    const answer = Math.ceil(people / perBus);
+    return makeQuestion({
+      subject: 'math',
+      grade,
+      domain: '無條件進入',
+      prompt: `${people} 人搭車，每車最多坐 ${perBus} 人，至少需要幾輛車？`,
+      answer: String(answer),
+      choices: buildNumberChoices(answer, rng, 4),
+      explanation: `${people} ÷ ${perBus} = ${formatDecimal(people / perBus)}，車輛不夠一輛也要算一輛，所以要 ${answer} 輛。`,
+      tip: '遇到「至少需要」，常用無條件進入。',
+    });
+  }
+
+  if (typeIndex === 2) {
+    const denominator = pick([5, 6, 8, 10, 12], rng);
+    const a = 1 + Math.floor(rng() * (denominator - 2));
+    const b = 1 + Math.floor(rng() * Math.max(1, denominator - a - 1));
+    const answer = fraction(a + b, denominator);
+    return makeQuestion({
+      subject: 'math',
+      grade,
+      domain: '同分母分數加法',
+      prompt: `${a}/${denominator} + ${b}/${denominator} = ?`,
+      answer,
+      choices: choicesFrom(answer, [`${a + b}/${denominator + denominator}`, `${a}/${denominator}`, `${b}/${denominator}`], rng),
+      explanation: `同分母分數相加，分母不變，分子相加：${a + b}/${denominator}，約分後是 ${answer}。`,
+      tip: '分母一樣時，只要分子相加。',
+    });
+  }
+
+  if (typeIndex === 3) {
+    const denominator = pick([5, 6, 8, 10, 12], rng);
+    const a = 2 + Math.floor(rng() * (denominator - 1));
+    const b = 1 + Math.floor(rng() * (a - 1));
+    const answer = fraction(a - b, denominator);
+    return makeQuestion({
+      subject: 'math',
+      grade,
+      domain: '同分母分數減法',
+      prompt: `${a}/${denominator} − ${b}/${denominator} = ?`,
+      answer,
+      choices: choicesFrom(answer, [`${a - b}/${denominator + denominator}`, `${a}/${denominator}`, `${b}/${denominator}`], rng),
+      explanation: `同分母分數相減，分母不變，分子相減：${a - b}/${denominator}，約分後是 ${answer}。`,
+      tip: '分母一樣時，只要分子相減。',
+    });
+  }
+
+  if (typeIndex === 4) {
+    const numerator = pick([1, 2, 3, 4, 5], rng);
+    const denominator = pick([4, 5, 6, 8, 10], rng);
+    const times = 2 + Math.floor(rng() * 5);
+    const answer = fraction(numerator * times, denominator);
+    return makeQuestion({
+      subject: 'math',
+      grade,
+      domain: '分數整數倍',
+      prompt: `${numerator}/${denominator} 的 ${times} 倍是多少？`,
+      answer,
+      choices: choicesFrom(answer, [fraction(numerator + times, denominator), `${numerator}/${denominator * times}`, String(numerator * times)], rng),
+      explanation: `分數乘整數時，分子乘 ${times}，分母不變，再約分成 ${answer}。`,
+      tip: '整數倍就是把分子乘上倍數。',
+    });
+  }
+
+  if (typeIndex === 5) {
+    const decimal = Number(((12 + Math.floor(rng() * 88)) / 10).toFixed(1));
+    const times = 2 + Math.floor(rng() * 8);
+    const answer = Number((decimal * times).toFixed(1));
+    return makeQuestion({
+      subject: 'math',
+      grade,
+      domain: '小數乘以整數',
+      prompt: `${decimal.toFixed(1)} × ${times} = ?`,
+      answer: answer.toFixed(1),
+      choices: choicesFrom(answer.toFixed(1), [(answer + 1).toFixed(1), (answer / 10).toFixed(2), String(Math.round(answer)), (answer + 0.5).toFixed(1)], rng),
+      explanation: `先像整數一樣相乘，再把小數點放回來，答案是 ${answer.toFixed(1)}。`,
+      tip: '注意原本有幾位小數。',
+    });
+  }
+
+  if (typeIndex === 6) {
+    const apples = 12 + Math.floor(rng() * 18);
+    const bananas = apples + pick([3, 5, 7, 9], rng);
+    const oranges = apples - pick([2, 4, 6], rng);
+    return makeQuestion({
+      subject: 'math',
+      grade,
+      domain: '統計圖表',
+      prompt: `水果票選：蘋果 ${apples} 票、香蕉 ${bananas} 票、橘子 ${oranges} 票。哪一項票數最多？`,
+      answer: '香蕉',
+      choices: shuffle(['香蕉', '蘋果', '橘子', '一樣多'], rng),
+      explanation: `比較票數，香蕉 ${bananas} 票最多。`,
+      tip: '先找表格中最大的數。',
+    });
+  }
+
+  if (typeIndex === 7) {
+    const length = 8 + Math.floor(rng() * 16);
+    const width = 3 + Math.floor(rng() * 10);
+    const answer = 2 * (length + width);
+    return makeQuestion({
+      subject: 'math',
+      grade,
+      domain: '周長',
+      prompt: `長方形長 ${length} 公分、寬 ${width} 公分，周長是多少公分？`,
+      answer: String(answer),
+      choices: buildNumberChoices(answer, rng, 12),
+      explanation: `長方形周長 = (長 + 寬) × 2 = (${length} + ${width}) × 2 = ${answer}。`,
+      tip: '周長是四邊加起來。',
+    });
+  }
+
+  if (typeIndex === 8) {
+    const length = 6 + Math.floor(rng() * 15);
+    const width = 4 + Math.floor(rng() * 10);
+    const answer = length * width;
+    return makeQuestion({
+      subject: 'math',
+      grade,
+      domain: '面積',
+      prompt: `長方形長 ${length} 公分、寬 ${width} 公分，面積是多少平方公分？`,
+      answer: String(answer),
+      choices: buildNumberChoices(answer, rng, 20),
+      explanation: `長方形面積 = 長 × 寬 = ${length} × ${width} = ${answer}。`,
+      tip: '面積要用平方單位。',
+    });
+  }
+
+  if (typeIndex === 9) {
+    const angle = pick([25, 30, 35, 40, 45, 50, 60, 75], rng);
+    const answer = 90 - angle;
+    return makeQuestion({
+      subject: 'math',
+      grade,
+      domain: '角度',
+      prompt: `兩個角合起來是直角，其中一個角是 ${angle}°，另一個角是多少度？`,
+      answer: String(answer),
+      choices: buildNumberChoices(answer, rng, 12),
+      explanation: `直角是 90°，所以另一個角是 90 − ${angle} = ${answer}°。`,
+      tip: '直角等於 90 度。',
+    });
+  }
+
+  if (typeIndex === 10) {
+    const divisor = pick([12, 15, 16, 18, 24], rng);
+    const quotient = 8 + Math.floor(rng() * diff.range);
+    const remainder = Math.floor(rng() * Math.min(8, divisor));
+    const dividend = divisor * quotient + remainder;
+    const answer = remainder ? `${quotient}...${remainder}` : String(quotient);
+    return makeQuestion({
+      subject: 'math',
+      grade,
+      domain: '二位數除法',
+      prompt: `${dividend} ÷ ${divisor} = ?`,
+      answer,
+      choices: choicesFrom(answer, [`${quotient + 1}...${remainder}`, String(quotient), `${quotient}...${remainder + 1}`], rng),
+      explanation: `${divisor} × ${quotient} = ${divisor * quotient}，餘數 ${remainder}，所以答案是 ${answer}。`,
+      tip: '先估商，再檢查餘數比除數小。',
+    });
+  }
+
+  const packs = 10 + Math.floor(rng() * 18);
+  const perPack = 12 + Math.floor(rng() * 22);
+  const answer = packs * perPack;
+  return makeQuestion({
+    subject: 'math',
+    grade,
+    domain: '乘法應用',
+    prompt: `每盒有 ${perPack} 顆星星，${packs} 盒共有幾顆？`,
+    answer: String(answer),
+    choices: buildNumberChoices(answer, rng, 60),
+    explanation: `${perPack} × ${packs} = ${answer}，共有 ${answer} 顆。`,
+    tip: '每盒一樣多，總數用乘法。',
+  });
+}
+
 function makeQuestion({
   subject,
   grade,
@@ -2036,6 +2468,10 @@ export function generateNaturalQuestion({ grade = 'grade5', level = 1, wave = 1,
 export function generateMathQuestion({ grade = 'grade2', level = 1, wave = 1, streak = 0, difficulty = 'sprout' } = {}, rng = Math.random) {
   const diff = DIFFICULTIES[difficulty] || DIFFICULTIES.sprout;
   const typeIndex = (level + wave + Math.floor(streak / 2) + Math.floor(rng() * 5)) % 8;
+
+  if (grade === 'grade4') {
+    return generateGrade4MathQuestion({ grade, level, wave, streak, difficulty }, rng);
+  }
 
   if (grade === 'grade5') {
     const grade5TypeIndex = (level + wave + Math.floor(streak / 2) + Math.floor(rng() * 9)) % 16;

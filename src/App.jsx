@@ -2789,7 +2789,7 @@ function StageStars({ stars, animated = false }) {
   );
 }
 
-function MapScreen({ profile, grade, onSelectStage }) {
+function MapScreen({ profile, grade, onSelectStage, onContinue }) {
   return (
     <div className="map-screen" role="dialog" aria-modal="true" aria-label="冒險地圖">
       <div className="map-sky" aria-hidden="true">
@@ -2801,6 +2801,9 @@ function MapScreen({ profile, grade, onSelectStage }) {
       <div className="map-head">
         <h2>糖果世界冒險地圖</h2>
         <p>{GRADES[grade].name}．每一關 5 波，第 5 波是 BOSS！</p>
+        <button type="button" className="map-start-button" onClick={onContinue}>
+          開始答題
+        </button>
       </div>
       <div className="map-path">
         {STAGES.map((stage, index) => {
@@ -3984,7 +3987,12 @@ export default function App() {
         />
       </main>
       {run.phase === 'map' ? (
-        <MapScreen profile={profile} grade={run.grade} onSelectStage={startStage} />
+        <MapScreen
+          profile={profile}
+          grade={run.grade}
+          onSelectStage={startStage}
+          onContinue={() => startStage(run.stageIndex || 0)}
+        />
       ) : null}
       <StageClearOverlay
         run={run}

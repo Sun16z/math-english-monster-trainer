@@ -153,7 +153,7 @@ p {
 }
 
 .segmented.grades {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .segmented button {
@@ -4636,6 +4636,9 @@ p {
 
 .map-head {
   z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
   text-align: center;
 }
 
@@ -4648,6 +4651,25 @@ p {
   margin: 0;
   color: var(--muted);
   font-weight: 700;
+}
+
+.map-start-button {
+  min-width: 132px;
+  min-height: 42px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--teal), #33bfa9);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 900;
+  box-shadow: 0 10px 22px rgba(22, 143, 128, 0.24);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.map-start-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(22, 143, 128, 0.3);
 }
 
 .map-path {
